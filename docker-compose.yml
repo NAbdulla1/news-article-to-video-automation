@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.13.7-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=news_user
+      - RABBITMQ_DEFAULT_PASS=news_password
+    volumes:
+      - news_rabbitmq_data:/var/lib/rabbitmq
+
+volumes:
+  news_rabbitmq_data:
