@@ -12,9 +12,9 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class FileSynthesizer {
+    private final String id;
     private final ResultCallback sendResult;
     private final List<SpeechSegment> speechSegments;
-    private final String id;
     private final AtomicInteger speechSegmentIndex;
     private final String outputAudioFile;
 
@@ -85,13 +85,13 @@ public class FileSynthesizer {
                     outputFile
             );
             cleanFiles();
-            this.sendResult.audioFile(null, outputFile);
+            this.sendResult.audioFile(outputFile);
         }
     }
 
     public void audioGenerationFailed(String speechSegmentId) {
         cleanFiles();
-        this.sendResult.audioFile(speechSegmentId, null);
+        this.sendResult.error(speechSegmentId);
     }
 
     private void cleanFiles() {

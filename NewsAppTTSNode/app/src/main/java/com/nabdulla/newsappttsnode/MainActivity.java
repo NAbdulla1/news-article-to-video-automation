@@ -1,28 +1,25 @@
 package com.nabdulla.newsappttsnode;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.media.MediaPlayer;
 import android.os.Bundle;
-import android.speech.tts.TextToSpeech;
-import android.util.Log;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import com.nabdulla.newsappttsnode.businesslogic.FileSynthesizer;
-import com.nabdulla.newsappttsnode.businesslogic.ResultCallback;
-
-import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
 
-public class MainActivity extends AppCompatActivity implements TextToSpeech.OnInitListener, ResultCallback {
-    private TextToSpeech tts;
+public class MainActivity extends AppCompatActivity {
     private TextView textView;
     private MediaPlayer mediaPlayer;
 
@@ -38,36 +35,26 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         });
 
         textView = findViewById(R.id.info);
-        tts = new TextToSpeech(this, this);
+
+        Intent serviceIntent = new Intent(this, RabbitMqService.class);
+        ContextCompat.startForegroundService(this, serviceIntent);
     }
 
-    @Override
-    public void onInit(int status) {
-        if (status == TextToSpeech.SUCCESS) {
-            Locale bengaliBdLocale = Locale.forLanguageTag("bn-BD");
-            int result = tts.setLanguage(bengaliBdLocale);
-            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                Log.e("TTS", "Language not supported.");
-            } else {
-                //synthesizeSpeechToFile("Hello! This is your TTS output.");
-                String text = getString(R.string.sample_text_input);
-                this.textView.setText("Found bn-BD language");
-                List<List<String>> paragraphs = splitTextIntoParagraphs(text, TextToSpeech.getMaxSpeechInputLength());
-                //speakParagraphs(paragraphs);
-                FileSynthesizer fileSynthesizer = new FileSynthesizer(tts, paragraphs, getExternalFilesDir(null).getAbsolutePath(), this);
-                fileSynthesizer.saveToFile();
+    private final BroadcastReceiver ttsStatusReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String status = intent.getStringExtra("status");
+            String filePath = intent.getStringExtra("filePath");
+
+            Toast.makeText(context, "Audio file status: " + status, Toast.LENGTH_LONG).show();
+            if (filePath != null) {
+                play(filePath);
             }
-        } else {
-            this.textView.setText("Didn't found bn-BD language");
         }
-    }
+    };
 
-    @Override
-    public void audioFile(String error, File file) {
-        if (error != null) {
-            Log.e("nf", error);
-            return;
-        }
+    public void play(String filePath) {
+        stopAndReleaseMediaPlayer(mediaPlayer != null && mediaPlayer.isPlaying());
 
         mediaPlayer = new MediaPlayer();
         mediaPlayer.setOnCompletionListener(mp -> {
@@ -76,7 +63,7 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         });
 
         try {
-            mediaPlayer.setDataSource(file.getPath());
+            mediaPlayer.setDataSource(filePath);
             mediaPlayer.prepare();
             mediaPlayer.start();
         } catch (IOException e) {
@@ -84,57 +71,31 @@ public class MainActivity extends AppCompatActivity implements TextToSpeech.OnIn
         }
     }
 
-    private List<List<String>> splitTextIntoParagraphs(String text, int maxLength) {
-        List<List<String>> chunks = new ArrayList<>();
-
-        // Split by paragraph markers — you can adjust as needed
-        String[] paragraphs = text.split("\\n+");
-
-        StringBuilder currentChunk = new StringBuilder();
-
-        for (String paragraph : paragraphs) {
-            if (paragraph.isEmpty()) {
-                continue;
-            }
-            chunks.add(splitParagraphIntoChunks(paragraph, maxLength));
-        }
-
-        return chunks;
+    @Override
+    protected void onResume() {
+        super.onResume();
+        LocalBroadcastManager.getInstance(this).registerReceiver(ttsStatusReceiver,
+                new IntentFilter("TTS_PROCESS_STATUS"));
     }
 
-    public List<String> splitParagraphIntoChunks(String paragraph, int maxLength) {
-        List<String> chunks = new ArrayList<>();
-
-        String[] sentences = paragraph.split("(?<=[।!?])"); // Split by Bengali sentence-ending punctuation
-        StringBuilder currentChunk = new StringBuilder();
-
-        for (String sentence : sentences) {
-            if (currentChunk.length() + sentence.length() > maxLength) {
-                chunks.add(currentChunk.toString().trim());
-                currentChunk.setLength(0);
-            }
-            currentChunk.append(sentence).append(" ");
-        }
-
-        if (currentChunk.length() > 0) {
-            chunks.add(currentChunk.toString().trim());
-        }
-
-        return chunks;
+    @Override
+    protected void onPause() {
+        super.onPause();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(ttsStatusReceiver);
     }
 
     @Override
     protected void onDestroy() {
-        if (tts != null) {
-            tts.stop();
-            tts.shutdown();
-        }
-        if (mediaPlayer != null) {
+        stopAndReleaseMediaPlayer(mediaPlayer != null);
+
+        super.onDestroy();
+    }
+
+    private void stopAndReleaseMediaPlayer(boolean isPlayer) {
+        if (isPlayer) {
             mediaPlayer.stop();
             mediaPlayer.release();
             mediaPlayer = null;
         }
-
-        super.onDestroy();
     }
 }
