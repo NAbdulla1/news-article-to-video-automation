@@ -26,13 +26,18 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RabbitMqService extends Service implements ResultCallback, TextToSpeech.OnInitListener {
     private Thread consumerThread;
     private Channel channel;
     private TextToAudioConverter textToAudioConverter;
     private TextToSpeech tts;
-    String exchangeName = "news-app-exchange";
+    private final String exchangeName = "news-app-exchange";
+    private final AtomicBoolean ttsProcessing = new AtomicBoolean(false);
+    private final Queue<String> textQueue = new ConcurrentLinkedQueue<>();
 
     @Override
     public void onCreate() {
@@ -87,7 +92,10 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
                             Log.d("RabbitMQ", "Received: " + message);
 
                             Handler mainHandler = new Handler(Looper.getMainLooper());
-                            mainHandler.post(() -> processMessage(message));
+                            mainHandler.post(() -> {
+                                textQueue.add(message);
+                                processMessage();
+                            });
 
                         }, consumerTag -> {
                             Log.d("RabbitMQ", "Article TTS Consumer Cancelled: " + consumerTag);
@@ -117,7 +125,19 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
         consumerThread.start();
     }
 
-    private void processMessage(String text) {
+    private void processMessage() {
+        if (ttsProcessing.get()) {
+            Log.i("nf", "Already processing, returning early");
+            return;
+        }
+
+        ttsProcessing.set(true);
+        String text = textQueue.poll();
+        if (text == null) {
+            Log.i("nf", "finished processing queue items");
+            ttsProcessing.set(false);
+            return;
+        }
         Intent intent = new Intent("TTS_PROCESS_STATUS");
         intent.putExtra("status", "started");
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
@@ -160,11 +180,11 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
 
     @Override
     public void audioFile(File file) throws IOException {
-        Intent intent = new Intent("TTS_PROCESS_STATUS");
+        /*Intent intent = new Intent("TTS_PROCESS_STATUS");
         intent.putExtra("status", "done");
         intent.putExtra("filePath", file.getAbsolutePath());
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-
+*/
         byte[] audioBytes = readFileToBytes(file);
 
         AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()
@@ -178,10 +198,22 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
                 props,
                 audioBytes
         );
+
+        Log.i("nf", "a message processed");
+        ttsProcessing.set(false);
+        try {
+            Thread.sleep(5000);
+            processMessage();
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void error(String speechSegmentId) {
+        Log.i("nf", "a message got error while processing");
+        ttsProcessing.set(false);
+        processMessage();
         //TODO
     }
 
