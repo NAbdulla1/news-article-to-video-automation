@@ -2,6 +2,8 @@ package com.nabdulla.newsappttsnode.businesslogic;
 
 import android.speech.tts.TextToSpeech;
 
+import com.nabdulla.newsappttsnode.NewsArticleData;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,9 +20,9 @@ public class TextToAudioConverter {
         this.callback = callback;
     }
 
-    public void convert(String text) {
-        List<List<String>> paragraphs = splitTextIntoParagraphs(text);
-        FileSynthesizer fileSynthesizer = new FileSynthesizer(tts, paragraphs, outputDir, this.callback);
+    public void convert(NewsArticleData newsArticle) {
+        List<List<String>> paragraphs = splitTextIntoParagraphs(newsArticle.getArticle());
+        FileSynthesizer fileSynthesizer = new FileSynthesizer(tts, paragraphs, newsArticle.getId(), outputDir, this.callback);
         fileSynthesizer.saveToFile();
     }
 

@@ -3,12 +3,14 @@ package com.nabdulla.newsappttsnode;
 import android.app.Notification;
 import android.app.Service;
 import android.content.Intent;
+import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.speech.tts.TextToSpeech;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.nabdulla.newsappttsnode.Utils.NotificationUtils;
@@ -24,6 +26,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Queue;
@@ -37,7 +41,8 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
     private TextToSpeech tts;
     private final String exchangeName = "news-app-exchange";
     private final AtomicBoolean ttsProcessing = new AtomicBoolean(false);
-    private final Queue<String> textQueue = new ConcurrentLinkedQueue<>();
+    private final Queue<NewsArticleData> textQueue = new ConcurrentLinkedQueue<>();
+    private final IBinder binder = new LocalBinder();
 
     @Override
     public void onCreate() {
@@ -64,6 +69,25 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
         } else {
             Log.e("nf", "TTS initialization failed.");
         }
+    }
+
+    public class LocalBinder extends Binder {
+        public RabbitMqService getService() {
+            return RabbitMqService.this;
+        }
+    }
+
+    public List<NewsArticleData> getExistingArticles() {
+        List<NewsArticleData> articles = new ArrayList<>();
+        for (NewsArticleData data : textQueue) {
+            articles.add(new NewsArticleData(
+                    data.getId(),
+                    data.getArticle(),
+                    data.getStatus()
+            ));
+        }
+
+        return articles;
     }
 
     private void startRabbitConsumer() {
@@ -93,7 +117,14 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
 
                             Handler mainHandler = new Handler(Looper.getMainLooper());
                             mainHandler.post(() -> {
-                                textQueue.add(message);
+                                NewsArticleData newsArticleData = new NewsArticleData(message);
+                                textQueue.add(newsArticleData);
+                                broadcastArticleInfo(
+                                        newsArticleData.getId(),
+                                        newsArticleData.getArticle(),
+                                        newsArticleData.getStatus(),
+                                        NewsArticleAction.ADDED
+                                );
                                 processMessage();
                             });
 
@@ -125,6 +156,15 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
         consumerThread.start();
     }
 
+    private void broadcastArticleInfo(String id, String content, NewsArticleStatus status, NewsArticleAction action) {
+        Intent intent = new Intent("TTS_NEWS_LIST");
+        intent.putExtra("id", id);
+        intent.putExtra("content", content);
+        intent.putExtra("status", status);
+        intent.putExtra("action", action);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+    }
+
     private void processMessage() {
         if (ttsProcessing.get()) {
             Log.i("nf", "Already processing, returning early");
@@ -132,16 +172,20 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
         }
 
         ttsProcessing.set(true);
-        String text = textQueue.poll();
-        if (text == null) {
+        NewsArticleData newsArticle = textQueue.peek();
+        if (newsArticle == null) {
             Log.i("nf", "finished processing queue items");
             ttsProcessing.set(false);
             return;
         }
-        Intent intent = new Intent("TTS_PROCESS_STATUS");
-        intent.putExtra("status", "started");
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-        this.textToAudioConverter.convert(text);
+        newsArticle.setStatus(NewsArticleStatus.PROCESSING);
+        broadcastArticleInfo(
+                newsArticle.getId(),
+                newsArticle.getArticle(),
+                newsArticle.getStatus(),
+                NewsArticleAction.STATUS_CHANGED
+        );
+        this.textToAudioConverter.convert(newsArticle);
     }
 
     private void startForegroundService() {
@@ -152,7 +196,6 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
         );
         startForeground(1, notification);
     }
-
 
     @Override
     public void onDestroy() {
@@ -173,18 +216,15 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
         }
     }
 
+    @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        return binder;
     }
 
     @Override
-    public void audioFile(File file) throws IOException {
-        /*Intent intent = new Intent("TTS_PROCESS_STATUS");
-        intent.putExtra("status", "done");
-        intent.putExtra("filePath", file.getAbsolutePath());
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
-*/
+    public void audioFile(String id, File file) throws IOException {
+        broadcastArticleInfo(id, "", NewsArticleStatus.SUCCESS, NewsArticleAction.STATUS_CHANGED);
         byte[] audioBytes = readFileToBytes(file);
 
         AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()
@@ -201,20 +241,38 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
 
         Log.i("nf", "a message processed");
         ttsProcessing.set(false);
-        try {
-            Thread.sleep(5000);
-            processMessage();
-        } catch(Exception e) {
-            e.printStackTrace();
-        }
+        processNext(false);
     }
 
     @Override
-    public void error(String speechSegmentId) {
+    public void error(String id, String speechSegmentId) {
+        broadcastArticleInfo(id, "", NewsArticleStatus.FAILED, NewsArticleAction.STATUS_CHANGED);
         Log.i("nf", "a message got error while processing");
         ttsProcessing.set(false);
-        processMessage();
-        //TODO
+        processNext(true);
+    }
+
+    private void processNext(boolean isFailed) {
+        NewsArticleData lastArticleData = textQueue.poll();
+        if (isFailed) {
+            if (lastArticleData != null) {
+                lastArticleData.setStatus(NewsArticleStatus.IN_QUEUE);
+                broadcastArticleInfo(
+                        lastArticleData.getId(),
+                        lastArticleData.getArticle(),
+                        lastArticleData.getStatus(),
+                        NewsArticleAction.ADDED
+                );
+                textQueue.add(lastArticleData);
+            }
+        }
+
+        try {
+            Thread.sleep(5000);
+            processMessage();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public byte[] readFileToBytes(File file) throws IOException {

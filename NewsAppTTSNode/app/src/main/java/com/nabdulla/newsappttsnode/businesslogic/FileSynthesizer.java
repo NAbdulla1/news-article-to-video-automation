@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class FileSynthesizer {
@@ -18,8 +17,8 @@ public class FileSynthesizer {
     private final AtomicInteger speechSegmentIndex;
     private final String outputAudioFile;
 
-    public FileSynthesizer(TextToSpeech tts, List<List<String>> paragraphs, String outputDir, ResultCallback callback) {
-        this.id = UUID.randomUUID().toString();
+    public FileSynthesizer(TextToSpeech tts, List<List<String>> paragraphs, String id, String outputDir, ResultCallback callback) {
+        this.id = id;
         this.speechSegments = new ArrayList<>();
         this.speechSegmentIndex = new AtomicInteger(0);
         this.outputAudioFile = outputDir + "/" + this.id + ".wav";
@@ -85,13 +84,13 @@ public class FileSynthesizer {
                     outputFile
             );
             cleanFiles();
-            this.sendResult.audioFile(outputFile);
+            this.sendResult.audioFile(this.id, outputFile);
         }
     }
 
     public void audioGenerationFailed(String speechSegmentId) {
         cleanFiles();
-        this.sendResult.error(speechSegmentId);
+        this.sendResult.error(this.id, speechSegmentId);
     }
 
     private void cleanFiles() {

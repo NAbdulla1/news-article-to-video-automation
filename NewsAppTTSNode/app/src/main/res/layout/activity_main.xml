@@ -8,13 +8,30 @@
     tools:context=".MainActivity">
 
     <TextView
-        android:id="@+id/info"
+        android:id="@+id/serviceStatusText"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Hello TTS"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_height="0dp"
+        android:text="Service Status"
+        android:textColor="#000000"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toBottomOf="@+id/btnStartService"
+        app:layout_constraintEnd_toStartOf="@+id/btnStartService"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/btnStartService"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/serviceStatusText"
+        app:layout_constraintVertical_bias="0.0"
+        tools:layout_editor_absoluteX="116dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
