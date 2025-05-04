@@ -7,16 +7,26 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+    <ImageView
+        android:id="@+id/ivOnlineDot"
+        android:layout_width="10dp"
+        android:layout_height="10dp"
+        android:layout_marginEnd="5dp"
+        android:contentDescription="@string/online_status_dot"
+        android:src="@drawable/ic_online"
+        app:layout_constraintBottom_toBottomOf="@id/tvServiceStatusText"
+        app:layout_constraintEnd_toStartOf="@id/tvServiceStatusText"
+        app:layout_constraintTop_toTopOf="@id/tvServiceStatusText" />
+
     <TextView
         android:id="@+id/tvServiceStatusText"
         android:layout_width="wrap_content"
-        android:layout_height="0dp"
-        android:text="Service Status"
-        android:textColor="#000000"
+        android:layout_height="wrap_content"
+        android:text="@string/tts_service_running"
+        android:textColor="#00ff00"
         android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="@+id/btnStartService"
-        app:layout_constraintEnd_toStartOf="@+id/btnStartService"
-        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -24,18 +34,31 @@
         android:id="@+id/btnStartService"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Start Service"
+        android:text="@string/tts_service_stopped_start_service"
+        android:visibility="invisible"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/tvServiceStatusText"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tvListEmpty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:text="@string/no_items_in_the_list"
+        android:textSize="24sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btnStartService" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvNewsArticles"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tvServiceStatusText"
+        app:layout_constraintTop_toBottomOf="@+id/btnStartService"
         app:layout_constraintVertical_bias="0.0" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -7,11 +7,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.graphics.Color;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
@@ -32,8 +33,8 @@ public class MainActivity extends AppCompatActivity {
     private MediaPlayer mediaPlayer;
     private List<NewsArticleData> newsArticles;
     private NewsArticleAdapter newsArticleAdapter;
-    RabbitMqService rabbitMqService;
-    boolean bound = false;
+    private boolean serviceBounded = false;
+    private Button btnStartService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,15 +47,23 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        newsArticles = new ArrayList<>();
-        newsArticleAdapter = new NewsArticleAdapter(newsArticles);
+        initNewsArticleListView();
+
+        initStartServiceButton();
 
         startRabbitMqService();
+    }
 
-        Button btnStartService = findViewById(R.id.btnStartService);
+    private void initStartServiceButton() {
+        btnStartService = findViewById(R.id.btnStartService);
         btnStartService.setOnClickListener(v -> startRabbitMqService());
+    }
 
+    private void initNewsArticleListView() {
         RecyclerView rvNewsArticles = findViewById(R.id.rvNewsArticles);
+
+        newsArticles = new ArrayList<>();
+        newsArticleAdapter = new NewsArticleAdapter(newsArticles);
         rvNewsArticles.setAdapter(newsArticleAdapter);
         rvNewsArticles.setLayoutManager(new LinearLayoutManager(this));
     }
@@ -77,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
                 if (!updatedExistingArticleStatus(newsArticleData)) {
                     newsArticles.add(newsArticleData);
                     newsArticleAdapter.notifyItemInserted(newsArticles.size() - 1);
+                    updateEmptyListUI();
                 }
             } else if (action == NewsArticleAction.STATUS_CHANGED) {
                 for (int idx = 0; idx < newsArticles.size(); idx++) {
@@ -106,8 +116,12 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onServiceConnected(ComponentName name, IBinder binder) {
             RabbitMqService.LocalBinder localBinder = (RabbitMqService.LocalBinder) binder;
-            rabbitMqService = localBinder.getService();
-            bound = true;
+            RabbitMqService rabbitMqService = localBinder.getService();
+            serviceBounded = true;
+
+            int itemCount = newsArticles.size();
+            newsArticles.clear();
+            newsArticleAdapter.notifyItemRangeRemoved(0, itemCount);
 
             List<NewsArticleData> rabbitMqServiceExistingArticles = rabbitMqService.getExistingArticles();
             for (NewsArticleData data : rabbitMqServiceExistingArticles) {
@@ -116,11 +130,12 @@ public class MainActivity extends AppCompatActivity {
                     newsArticleAdapter.notifyItemInserted(newsArticles.size() - 1);
                 }
             }
+            updateEmptyListUI();
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            bound = false;
+            serviceBounded = false;
         }
     };
 
@@ -134,9 +149,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        if (bound) {
+        if (serviceBounded) {
             unbindService(rabbitMqServiceConnection);
-            bound = false;
+            serviceBounded = false;
         }
     }
 
@@ -211,14 +226,25 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateServiceStatusUI() {
         TextView statusView = findViewById(R.id.tvServiceStatusText);
-        boolean running = isServiceRunning(RabbitMqService.class);
+        ImageView ivOnlineDot = findViewById(R.id.ivOnlineDot);
 
-        if (running) {
-            statusView.setText("Service Running");
-            statusView.setTextColor(Color.GREEN);
+        if (isServiceRunning(RabbitMqService.class)) {
+            statusView.setVisibility(View.VISIBLE);
+            ivOnlineDot.setVisibility(View.VISIBLE);
+            btnStartService.setVisibility(View.INVISIBLE);
         } else {
-            statusView.setText("Service Stopped");
-            statusView.setTextColor(Color.RED);
+            statusView.setVisibility(View.INVISIBLE);
+            ivOnlineDot.setVisibility(View.INVISIBLE);
+            btnStartService.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void updateEmptyListUI() {
+        TextView tvListEmpty = findViewById(R.id.tvListEmpty);
+        if (newsArticles.isEmpty()) {
+            tvListEmpty.setVisibility(View.VISIBLE);
+        } else {
+            tvListEmpty.setVisibility(View.GONE);
         }
     }
 }

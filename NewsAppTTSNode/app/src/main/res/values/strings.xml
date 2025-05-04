@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">NewsAppTTSNode</string>
+    <string name="tts_service_stopped_start_service">TTS Service stopped, Start Service</string>
+    <string name="tts_service_running">TTS Service Running</string>
+    <string name="no_items_in_the_list">No TTS task in the list, waiting for new task</string>
+    <string name="online_status_dot">Online status dot</string>
 </resources>
