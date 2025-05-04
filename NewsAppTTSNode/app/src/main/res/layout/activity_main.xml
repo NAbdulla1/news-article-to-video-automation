@@ -8,7 +8,7 @@
     tools:context=".MainActivity">
 
     <TextView
-        android:id="@+id/serviceStatusText"
+        android:id="@+id/tvServiceStatusText"
         android:layout_width="wrap_content"
         android:layout_height="0dp"
         android:text="Service Status"
@@ -16,6 +16,7 @@
         android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="@+id/btnStartService"
         app:layout_constraintEnd_toStartOf="@+id/btnStartService"
+        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -23,15 +24,18 @@
         android:id="@+id/btnStartService"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:text="Start Service"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/tvServiceStatusText"
         app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvNewsArticles"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/serviceStatusText"
-        app:layout_constraintVertical_bias="0.0"
-        tools:layout_editor_absoluteX="116dp" />
+        app:layout_constraintTop_toBottomOf="@+id/tvServiceStatusText"
+        app:layout_constraintVertical_bias="0.0" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

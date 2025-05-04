@@ -21,14 +21,17 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     private MediaPlayer mediaPlayer;
-    private Button btnStartService;
-    private List<NewsArticleData> newsArticles; // TODO Use it to show a list
+    private List<NewsArticleData> newsArticles;
+    private NewsArticleAdapter newsArticleAdapter;
     RabbitMqService rabbitMqService;
     boolean bound = false;
 
@@ -43,12 +46,17 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-//        Intent serviceIntent = new Intent(this, RabbitMqService.class);
-//        ContextCompat.startForegroundService(this, serviceIntent);
+        newsArticles = new ArrayList<>();
+        newsArticleAdapter = new NewsArticleAdapter(newsArticles);
+
         startRabbitMqService();
 
-        btnStartService = findViewById(R.id.btnStartService);
+        Button btnStartService = findViewById(R.id.btnStartService);
         btnStartService.setOnClickListener(v -> startRabbitMqService());
+
+        RecyclerView rvNewsArticles = findViewById(R.id.rvNewsArticles);
+        rvNewsArticles.setAdapter(newsArticleAdapter);
+        rvNewsArticles.setLayoutManager(new LinearLayoutManager(this));
     }
 
     private final BroadcastReceiver newsListReceiver = new BroadcastReceiver() {
@@ -68,23 +76,25 @@ public class MainActivity extends AppCompatActivity {
 
                 if (!updatedExistingArticleStatus(newsArticleData)) {
                     newsArticles.add(newsArticleData);
+                    newsArticleAdapter.notifyItemInserted(newsArticles.size() - 1);
                 }
             } else if (action == NewsArticleAction.STATUS_CHANGED) {
-                for (NewsArticleData data : newsArticles) {
-                    if (data.getId().equals(id)) {
-                        data.setStatus(status);
+                for (int idx = 0; idx < newsArticles.size(); idx++) {
+                    if (newsArticles.get(idx).getId().equals(id)) {
+                        newsArticles.get(idx).setStatus(status);
+                        newsArticleAdapter.notifyItemChanged(idx);
                         break;
                     }
                 }
             }
-            //TODO update ui
         }
     };
 
     private boolean updatedExistingArticleStatus(NewsArticleData newsArticleData) {
-        for (NewsArticleData data : newsArticles) {
-            if (data.getId().equals(newsArticleData.getId())) {
-                data.setStatus(newsArticleData.getStatus());
+        for (int idx = 0; idx < newsArticles.size(); idx++) {
+            if (newsArticles.get(idx).getId().equals(newsArticleData.getId())) {
+                newsArticles.get(idx).setStatus(newsArticleData.getStatus());
+                newsArticleAdapter.notifyItemChanged(idx);
                 return true;
             }
         }
@@ -103,6 +113,7 @@ public class MainActivity extends AppCompatActivity {
             for (NewsArticleData data : rabbitMqServiceExistingArticles) {
                 if (!updatedExistingArticleStatus(data)) {
                     newsArticles.add(data);
+                    newsArticleAdapter.notifyItemInserted(newsArticles.size() - 1);
                 }
             }
         }
@@ -194,11 +205,12 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             }
         }
+
         return false;
     }
 
     private void updateServiceStatusUI() {
-        TextView statusView = findViewById(R.id.serviceStatusText);
+        TextView statusView = findViewById(R.id.tvServiceStatusText);
         boolean running = isServiceRunning(RabbitMqService.class);
 
         if (running) {
