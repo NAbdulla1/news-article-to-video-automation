@@ -2,7 +2,9 @@ package com.nabdulla.newsappttsnode;
 
 import android.app.Notification;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
@@ -43,10 +45,12 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
     private final AtomicBoolean ttsProcessing = new AtomicBoolean(false);
     private final Queue<NewsArticleData> textQueue = new ConcurrentLinkedQueue<>();
     private final IBinder binder = new LocalBinder();
+    private SharedPreferences prefs;
 
     @Override
     public void onCreate() {
         super.onCreate();
+        prefs = this.getSharedPreferences("RabbitMQPrefs", Context.MODE_PRIVATE);
         startForegroundService(); // Notification for foreground service
         this.tts = new TextToSpeech(this, this);
         this.textToAudioConverter = new TextToAudioConverter(
@@ -94,21 +98,27 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
         consumerThread = new Thread(() -> {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
+                    String host = prefs.getString("host", "192.168.10.159");
+                    String username = prefs.getString("username", "news_user");
+                    String password = prefs.getString("password", "news_password");
+                    String exchange = prefs.getString("exchange", "news-app-exchange");
+                    String inputRoutingKey = prefs.getString("input_routing_key", "input.tts");
+
                     ConnectionFactory factory = new ConnectionFactory();
-                    factory.setHost("192.168.10.159");
-                    factory.setUsername("news_user");
-                    factory.setPassword("news_password");
+                    factory.setHost(host);
+                    factory.setUsername(username);
+                    factory.setPassword(password);
 
                     Connection connection = null;
                     try {
                         connection = factory.newConnection();
                         channel = connection.createChannel();
 
-                        channel.exchangeDeclare(exchangeName, "direct", true);
+                        channel.exchangeDeclare(exchange, "direct", true);
 
                         String queueName = "news-article-queue";
                         channel.queueDeclare(queueName, true, false, false, null);
-                        channel.queueBind(queueName, exchangeName, "input.tts");
+                        channel.queueBind(queueName, exchange, inputRoutingKey);
 
                         channel.basicConsume(queueName, true, (consumerTag, delivery) -> {
                             String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
@@ -224,6 +234,9 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
 
     @Override
     public void audioFile(String id, File file) throws IOException {
+        String exchange = prefs.getString("exchange", "news-app-exchange");
+        String outputRoutingKey = prefs.getString("output_routing_key", "output.tts");
+
         broadcastArticleInfo(id, "", NewsArticleStatus.SUCCESS, NewsArticleAction.STATUS_CHANGED);
         byte[] audioBytes = readFileToBytes(file);
 
@@ -233,8 +246,8 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
                 .build();
 
         channel.basicPublish(
-                exchangeName,
-                "output.tts",
+                exchange,
+                outputRoutingKey,
                 props,
                 audioBytes
         );

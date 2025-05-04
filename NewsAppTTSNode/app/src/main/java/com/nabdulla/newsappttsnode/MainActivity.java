@@ -10,6 +10,7 @@ import android.content.ServiceConnection;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -51,7 +52,17 @@ public class MainActivity extends AppCompatActivity {
 
         initStartServiceButton();
 
+        initOpenSettingsButton();
+
         startRabbitMqService();
+    }
+
+    private void initOpenSettingsButton() {
+        Button btnOpenSettings = findViewById(R.id.btnOpenSettings);
+        btnOpenSettings.setOnClickListener(v -> {
+            Intent intent = new Intent(this, SettingsActivity.class);
+            startActivity(intent);
+        });
     }
 
     private void initStartServiceButton() {
