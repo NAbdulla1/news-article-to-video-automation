@@ -13,4 +13,6 @@
     <string name="output_routing_key">Output Routing Key</string>
     <string name="save">Save</string>
     <string name="make_password_visible">Make password visible</string>
+    <string name="amqp_not_connected">AMQP not connected</string>
+    <string name="amqp_connected">AMQP connected</string>
 </resources>

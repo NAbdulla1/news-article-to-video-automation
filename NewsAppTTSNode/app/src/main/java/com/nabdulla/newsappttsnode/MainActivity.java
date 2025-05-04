@@ -10,7 +10,6 @@ import android.content.ServiceConnection;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -36,6 +35,7 @@ public class MainActivity extends AppCompatActivity {
     private NewsArticleAdapter newsArticleAdapter;
     private boolean serviceBounded = false;
     private Button btnStartService;
+    private RabbitMqService rabbitMqService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +55,8 @@ public class MainActivity extends AppCompatActivity {
         initOpenSettingsButton();
 
         startRabbitMqService();
+
+        updateAmqpStatusUI(null);
     }
 
     private void initOpenSettingsButton() {
@@ -79,37 +81,50 @@ public class MainActivity extends AppCompatActivity {
         rvNewsArticles.setLayoutManager(new LinearLayoutManager(this));
     }
 
-    private final BroadcastReceiver newsListReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver mqServiceReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            NewsArticleAction action = (NewsArticleAction) intent.getSerializableExtra("action");
+            BroadcastAction action = (BroadcastAction) intent.getSerializableExtra("action");
 
-            String id = intent.getStringExtra("id");
-            NewsArticleStatus status = (NewsArticleStatus) intent.getSerializableExtra("status");
-
-            if (action == NewsArticleAction.ADDED) {
-                NewsArticleData newsArticleData = new NewsArticleData(
-                        id,
-                        intent.getStringExtra("content"),
-                        status
-                );
-
-                if (!updatedExistingArticleStatus(newsArticleData)) {
-                    newsArticles.add(newsArticleData);
-                    newsArticleAdapter.notifyItemInserted(newsArticles.size() - 1);
-                    updateEmptyListUI();
-                }
-            } else if (action == NewsArticleAction.STATUS_CHANGED) {
-                for (int idx = 0; idx < newsArticles.size(); idx++) {
-                    if (newsArticles.get(idx).getId().equals(id)) {
-                        newsArticles.get(idx).setStatus(status);
-                        newsArticleAdapter.notifyItemChanged(idx);
-                        break;
-                    }
-                }
+            if (action == BroadcastAction.RABBITMQ_STATUS_CHANGED) {
+                handleMqStatus(intent);
+            } else {
+                handleNewsArticleAction(intent, action);
             }
         }
     };
+
+    private void handleMqStatus(Intent intent) {
+        boolean isConnected = intent.getBooleanExtra("running", false);
+        updateAmqpStatusUI(isConnected);
+    }
+
+    private void handleNewsArticleAction(Intent intent, BroadcastAction action) {
+        String id = intent.getStringExtra("id");
+        NewsArticleStatus status = (NewsArticleStatus) intent.getSerializableExtra("status");
+
+        if (action == BroadcastAction.NEWS_ARTICLE_ADDED) {
+            NewsArticleData newsArticleData = new NewsArticleData(
+                    id,
+                    intent.getStringExtra("content"),
+                    status
+            );
+
+            if (!updatedExistingArticleStatus(newsArticleData)) {
+                newsArticles.add(newsArticleData);
+                newsArticleAdapter.notifyItemInserted(newsArticles.size() - 1);
+                updateEmptyListUI();
+            }
+        } else if (action == BroadcastAction.NEWS_ARTICLE_STATUS_CHANGED) {
+            for (int idx = 0; idx < newsArticles.size(); idx++) {
+                if (newsArticles.get(idx).getId().equals(id)) {
+                    newsArticles.get(idx).setStatus(status);
+                    newsArticleAdapter.notifyItemChanged(idx);
+                    break;
+                }
+            }
+        }
+    }
 
     private boolean updatedExistingArticleStatus(NewsArticleData newsArticleData) {
         for (int idx = 0; idx < newsArticles.size(); idx++) {
@@ -127,8 +142,9 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onServiceConnected(ComponentName name, IBinder binder) {
             RabbitMqService.LocalBinder localBinder = (RabbitMqService.LocalBinder) binder;
-            RabbitMqService rabbitMqService = localBinder.getService();
+            rabbitMqService = localBinder.getService();
             serviceBounded = true;
+            updateAmqpStatusUI(null);
 
             int itemCount = newsArticles.size();
             newsArticles.clear();
@@ -189,9 +205,10 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
 
         startRabbitMqService();
+        updateAmqpStatusUI(null);
 
         LocalBroadcastManager.getInstance(this)
-                .registerReceiver(newsListReceiver, new IntentFilter("TTS_NEWS_LIST"));
+                .registerReceiver(mqServiceReceiver, new IntentFilter("MQ_SERVICE_UPDATE"));
     }
 
     private void startRabbitMqService() {
@@ -206,7 +223,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(newsListReceiver);
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mqServiceReceiver);
     }
 
     @Override
@@ -237,7 +254,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateServiceStatusUI() {
         TextView statusView = findViewById(R.id.tvServiceStatusText);
-        ImageView ivOnlineDot = findViewById(R.id.ivOnlineDot);
+        ImageView ivOnlineDot = findViewById(R.id.ivServiceOnlineDot);
 
         if (isServiceRunning(RabbitMqService.class)) {
             statusView.setVisibility(View.VISIBLE);
@@ -256,6 +273,22 @@ public class MainActivity extends AppCompatActivity {
             tvListEmpty.setVisibility(View.VISIBLE);
         } else {
             tvListEmpty.setVisibility(View.GONE);
+        }
+    }
+
+    private void updateAmqpStatusUI(Boolean amqpConnected) {
+        if(amqpConnected == null && serviceBounded) {
+            amqpConnected = rabbitMqService.isMqRunning();
+        }
+
+        ImageView ivMqStatusDot = findViewById(R.id.ivMqStatusDot);
+        TextView tvMqStatusText = findViewById(R.id.tvMqStatusText);
+        if (amqpConnected != null && amqpConnected) {
+            ivMqStatusDot.setImageResource(R.drawable.ic_online);
+            tvMqStatusText.setText(R.string.amqp_connected);
+        } else {
+            ivMqStatusDot.setImageResource(R.drawable.ic_offline);
+            tvMqStatusText.setText(R.string.amqp_not_connected);
         }
     }
 }

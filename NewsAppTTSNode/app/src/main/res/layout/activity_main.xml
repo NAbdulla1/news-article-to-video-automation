@@ -8,7 +8,7 @@
     tools:context=".MainActivity">
 
     <ImageView
-        android:id="@+id/ivOnlineDot"
+        android:id="@+id/ivServiceOnlineDot"
         android:layout_width="10dp"
         android:layout_height="10dp"
         android:layout_marginEnd="5dp"
@@ -23,7 +23,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/tts_service_running"
-        android:textColor="#00ff00"
+        android:textColor="#05b714"
         android:textSize="16sp"
         app:layout_constraintBottom_toBottomOf="@+id/btnStartService"
         app:layout_constraintEnd_toEndOf="parent"
@@ -38,7 +38,26 @@
         android:visibility="invisible"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/ivMqStatusDot"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="5dp"
+        android:src="@drawable/ic_offline"
+        app:layout_constraintBottom_toBottomOf="@+id/tvMqStatusText"
+        app:layout_constraintEnd_toStartOf="@+id/tvMqStatusText"
+        app:layout_constraintTop_toTopOf="@+id/tvMqStatusText" />
+
+    <TextView
+        android:id="@+id/tvMqStatusText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/amqp_not_connected"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btnStartService" />
 
     <Button
         android:id="@+id/btnOpenSettings"
@@ -47,7 +66,7 @@
         android:text="@string/open_settings"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btnStartService" />
+        app:layout_constraintTop_toBottomOf="@+id/tvMqStatusText" />
 
     <TextView
         android:id="@+id/tvListEmpty"

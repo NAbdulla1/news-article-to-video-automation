@@ -46,6 +46,7 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
     private final Queue<NewsArticleData> textQueue = new ConcurrentLinkedQueue<>();
     private final IBinder binder = new LocalBinder();
     private SharedPreferences prefs;
+    private boolean isMqRunning;
 
     @Override
     public void onCreate() {
@@ -94,6 +95,10 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
         return articles;
     }
 
+    public boolean isMqRunning() {
+        return this.isMqRunning;
+    }
+
     private void startRabbitConsumer() {
         consumerThread = new Thread(() -> {
             while (!Thread.currentThread().isInterrupted()) {
@@ -133,7 +138,7 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
                                         newsArticleData.getId(),
                                         newsArticleData.getArticle(),
                                         newsArticleData.getStatus(),
-                                        NewsArticleAction.ADDED
+                                        BroadcastAction.NEWS_ARTICLE_ADDED
                                 );
                                 processMessage();
                             });
@@ -141,12 +146,15 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
                         }, consumerTag -> {
                             Log.d("RabbitMQ", "Article TTS Consumer Cancelled: " + consumerTag);
                         });
+                        broadcastMqStatus(true);
                     } catch (Exception e) {
                         if (connection != null) {
                             connection.close();
                         }
+                        broadcastMqStatus(false);
                         throw e;
                     }
+
 
                     // If connection succeeds, stay inside this thread until failure
                     while (connection.isOpen() && !Thread.currentThread().isInterrupted()) {
@@ -166,8 +174,16 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
         consumerThread.start();
     }
 
-    private void broadcastArticleInfo(String id, String content, NewsArticleStatus status, NewsArticleAction action) {
-        Intent intent = new Intent("TTS_NEWS_LIST");
+    private void broadcastMqStatus(boolean running) {
+        this.isMqRunning = running;
+        Intent intent = new Intent("MQ_SERVICE_UPDATE");
+        intent.putExtra("running", running);
+        intent.putExtra("action", BroadcastAction.RABBITMQ_STATUS_CHANGED);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+    }
+
+    private void broadcastArticleInfo(String id, String content, NewsArticleStatus status, BroadcastAction action) {
+        Intent intent = new Intent("MQ_SERVICE_UPDATE");
         intent.putExtra("id", id);
         intent.putExtra("content", content);
         intent.putExtra("status", status);
@@ -193,7 +209,7 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
                 newsArticle.getId(),
                 newsArticle.getArticle(),
                 newsArticle.getStatus(),
-                NewsArticleAction.STATUS_CHANGED
+                BroadcastAction.NEWS_ARTICLE_STATUS_CHANGED
         );
         this.textToAudioConverter.convert(newsArticle);
     }
@@ -237,7 +253,7 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
         String exchange = prefs.getString("exchange", "news-app-exchange");
         String outputRoutingKey = prefs.getString("output_routing_key", "output.tts");
 
-        broadcastArticleInfo(id, "", NewsArticleStatus.SUCCESS, NewsArticleAction.STATUS_CHANGED);
+        broadcastArticleInfo(id, "", NewsArticleStatus.SUCCESS, BroadcastAction.NEWS_ARTICLE_STATUS_CHANGED);
         byte[] audioBytes = readFileToBytes(file);
 
         AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()
@@ -259,7 +275,7 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
 
     @Override
     public void error(String id, String speechSegmentId) {
-        broadcastArticleInfo(id, "", NewsArticleStatus.FAILED, NewsArticleAction.STATUS_CHANGED);
+        broadcastArticleInfo(id, "", NewsArticleStatus.FAILED, BroadcastAction.NEWS_ARTICLE_STATUS_CHANGED);
         Log.i("nf", "a message got error while processing");
         ttsProcessing.set(false);
         processNext(true);
@@ -274,7 +290,7 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
                         lastArticleData.getId(),
                         lastArticleData.getArticle(),
                         lastArticleData.getStatus(),
-                        NewsArticleAction.ADDED
+                        BroadcastAction.NEWS_ARTICLE_ADDED
                 );
                 textQueue.add(lastArticleData);
             }
