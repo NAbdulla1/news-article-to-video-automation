@@ -3,6 +3,7 @@ package com.nabdulla.newsappttsnode;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
@@ -40,10 +41,29 @@ public class NewsArticleAdapter extends RecyclerView.Adapter<NewsArticleAdapter.
 
         tvNewsTitle.setText(this.newsArticles.get(position).getArticle().substring(0, 25));
         tvStatus.setText(this.newsArticles.get(position).getStatus().toString());
+
         if (this.newsArticles.get(position).getStatus() == NewsArticleStatus.PROCESSING) {
             pbProcessing.setVisibility(View.VISIBLE);
+            showOtherIcons(holder, this.newsArticles.get(position), View.GONE);
         } else {
             pbProcessing.setVisibility(View.GONE);
+            showOtherIcons(holder,this.newsArticles.get(position), View.VISIBLE);
+        }
+    }
+
+    private void showOtherIcons(NewsArticleViewHolder holder, NewsArticleData newsArticleData, int visible) {
+        ImageView ivNotProcessing = holder.itemView.findViewById(R.id.ivNotProcessing);
+        ivNotProcessing.setVisibility(visible);
+
+        switch (newsArticleData.getStatus()) {
+            case IN_QUEUE:
+                ivNotProcessing.setImageResource(android.R.drawable.ic_lock_idle_alarm);
+                break;
+            case FAILED:
+                ivNotProcessing.setImageResource(android.R.drawable.ic_dialog_alert);
+                break;
+            case SUCCESS:
+                ivNotProcessing.setImageResource(android.R.drawable.checkbox_on_background);
         }
     }
 

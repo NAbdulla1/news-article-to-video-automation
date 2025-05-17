@@ -36,4 +36,15 @@
         app:layout_constraintBottom_toBottomOf="@+id/tvStatus"
         app:layout_constraintStart_toEndOf="@+id/tvStatus"
         app:layout_constraintTop_toTopOf="@+id/tvStatus" />
+
+    <ImageView
+        android:id="@+id/ivNotProcessing"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_marginStart="4dp"
+        android:contentDescription="@string/icon_for_non_processing"
+        android:src="@android:drawable/ic_lock_idle_alarm"
+        app:layout_constraintBottom_toBottomOf="@+id/tvStatus"
+        app:layout_constraintStart_toEndOf="@+id/tvStatus"
+        app:layout_constraintTop_toTopOf="@+id/tvStatus" />
 </androidx.constraintlayout.widget.ConstraintLayout>

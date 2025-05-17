@@ -15,4 +15,5 @@
     <string name="make_password_visible">Make password visible</string>
     <string name="amqp_not_connected">AMQP not connected</string>
     <string name="amqp_connected">AMQP connected</string>
+    <string name="icon_for_non_processing">Icon for non-processing</string>
 </resources>
