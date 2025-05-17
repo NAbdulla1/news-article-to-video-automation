@@ -25,7 +25,15 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="@+id/tvNewsTitle"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/tvNewsTitle" />
+
+    <ProgressBar
+        android:id="@+id/pbProcessing"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_marginStart="4dp"
+        app:layout_constraintBottom_toBottomOf="@+id/tvStatus"
+        app:layout_constraintStart_toEndOf="@+id/tvStatus"
+        app:layout_constraintTop_toTopOf="@+id/tvStatus" />
 </androidx.constraintlayout.widget.ConstraintLayout>
