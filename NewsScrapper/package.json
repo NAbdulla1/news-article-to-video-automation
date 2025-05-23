@@ -1,0 +1,17 @@
+{
+  "type": "module",
+  "name": "news-scrapper",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Md. Abdulla Al Mamun",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "playwright": "^1.40.0"
+  }
+}
