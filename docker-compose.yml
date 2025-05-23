@@ -23,6 +23,13 @@ services:
     ports:
       - "27017:27017"
 
+  scrapper:
+    build:
+      context: ./NewsScrapper
+      dockerfile: Dockerfile
+    depends_on:
+      - app_db
+
 volumes:
   news_rabbitmq_data:
   app_db_data:
