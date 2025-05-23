@@ -1,4 +1,4 @@
-version: '3.8'
+version: '3.9'
 
 services:
   rabbitmq:
@@ -12,5 +12,17 @@ services:
     volumes:
       - news_rabbitmq_data:/var/lib/rabbitmq
 
+  app_db:
+    image: mongo:7.0.20-jammy
+    restart: on-failure
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=news_user
+      - MONGO_INITDB_ROOT_PASSWORD=db_pass
+    volumes:
+      - app_db_data:/data/db
+    ports:
+      - "27017:27017"
+
 volumes:
   news_rabbitmq_data:
+  app_db_data:

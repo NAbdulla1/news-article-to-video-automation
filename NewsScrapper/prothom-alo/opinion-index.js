@@ -1,7 +1,10 @@
 import { timeout } from "../config.js";
 import { ContentScrapper } from "./ContentScrapper.js";
 import { InterviewContentScrapper } from "./InterviewContentScrapper.js";
+import UrlRepository from "../db/UrlRepository.js";
+import { UrlStatusEnum } from "../UrlStatusEnum.js";
 
+const sourceName = "prothom-alo";
 const urlToScrap = "https://www.prothomalo.com/opinion";
 
 const opinionStartLinksSelector = "#container .wide-story-card .headline-title a, #container .news_with_item .card-with-image-zoom a";
@@ -11,8 +14,6 @@ const midPageScrollLocation = "#container div[data-infinite-scroll=\"2\"]";
 
 export async function scrapProthomAlo(page) {
     console.log("Scrapping Prothom Alo");
-    const lastScrappedOpinionUrl = 'ASDFASDFASD';//TODO this will come from DB or other source
-
     await page.goto(urlToScrap, { timeout });
     await page.waitForSelector(opinionStartLinksSelector, { timeout }); // what happens if timeout reached?
 
@@ -20,37 +21,58 @@ export async function scrapProthomAlo(page) {
         return aTags.map(aTag => aTag.href);
     });
 
-    let existingIndex = opinionStartLinks.findIndex(link => link.includes(lastScrappedOpinionUrl));
-    if (existingIndex !== -1) {
-        return await scrapOpinions(page, opinionStartLinks.slice(0, existingIndex));
+    for (let link of opinionStartLinks) {
+        const isUrlExists = await UrlRepository.isUrlExists(link, sourceName);
+        if (!isUrlExists) {
+            await UrlRepository.insertUrl({ url: link, source: sourceName, status: UrlStatusEnum.PENDING });
+        } else {
+            continue;
+        }
     }
+
     await page.locator(midPageScrollLocation).scrollIntoViewIfNeeded();
 
-    let allOpinionInfScrollLinks = [...opinionStartLinks];
-    while (allOpinionInfScrollLinks.filter(link => link.includes(lastScrappedOpinionUrl)).length === 0
-        && allOpinionInfScrollLinks.length < 5) { //TODO remove this constraint if lastScrappedOptionUrl is there
+    let infiniteScrollLinkCount = 0;
+    let alreadyLoadedLinkCount = 0;
+    while (infiniteScrollLinkCount < 5) {
         let opinionInfScrollLinks = await page.$$eval(opinionInfScrollLinksSelector, (aTags) => {
             return aTags.map(aTag => aTag.href);
         });
 
-        console.log('inf scroll links:', opinionInfScrollLinks.length);
-        let newlyLoadedLinks = opinionInfScrollLinks.slice(allOpinionInfScrollLinks.length);
-        allOpinionInfScrollLinks.push(...newlyLoadedLinks);
+        let newlyLoadedLinks = opinionInfScrollLinks.slice(infiniteScrollLinkCount);
+        for (let link of newlyLoadedLinks) {
+            const isUrlExists = await UrlRepository.isUrlExists(link, sourceName);
+            if (!isUrlExists) {
+                await UrlRepository.insertUrl({ url: link, source: sourceName, status: UrlStatusEnum.PENDING });
+            } else {
+                alreadyLoadedLinkCount++;
+                if (alreadyLoadedLinkCount >= 5) {
+                    break;
+                }
+            }
+        }
+
+        if (alreadyLoadedLinkCount >= 5) {
+            console.log("Already loaded 5 links, stopping infinite scroll");
+            break;
+        }
+
+        infiniteScrollLinkCount += newlyLoadedLinks.length;
         await page.locator(moreOpinionBtnSelector).click({ timeout });
-        console.log("New data loaded...");
     }
 
-    existingIndex = allOpinionInfScrollLinks.findIndex(link => link.includes(lastScrappedOpinionUrl));
-    if (existingIndex !== -1) {
-        allOpinionInfScrollLinks = allOpinionInfScrollLinks.slice(0, existingIndex);
-    }
-
-    return await scrapOpinions(page, opinionStartLinks.concat(allOpinionInfScrollLinks));
+    return await scrapOpinions(page);
 }
 
-async function scrapOpinions(page, links = []) {
+async function scrapOpinions(page) {
+    let links = await UrlRepository.getPendingUrls(sourceName);
+    if (links.length === 0) {
+        console.log("No pending links to scrap");
+        return [];
+    }
+
     let scrappedOpnions = [];
-    for (let link of links) {
+    for (let { url: link } of links) {
         console.log("Processing link:", link);
         try {
             let scrapper = null;
@@ -60,10 +82,13 @@ async function scrapOpinions(page, links = []) {
                 scrapper = new ContentScrapper(page);
             }
 
-            const op = await scrapper.scrapContent(link);
-            scrappedOpnions.push(op);
+            const article = await scrapper.scrapContent(link);
+            scrappedOpnions.push(article);
+            await UrlRepository.updateUrl(link, sourceName, UrlStatusEnum.PREPARING_AUDIO, article);
+            //make the url complete after getting audio
         } catch (e) {
             console.log(e.message, link);
+            await UrlRepository.updateUrl(link, sourceName, UrlStatusEnum.FAILED);
         }
     }
 
