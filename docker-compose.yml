@@ -1,4 +1,3 @@
-version: '3.9'
 
 services:
   rabbitmq:
@@ -29,6 +28,24 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - app_db
+
+  newsttspython:
+    build:
+      context: ./NewsTTSPython
+      dockerfile: Dockerfile
+    depends_on:
+      - rabbitmq
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+
+  newsvideogenerator:
+    build:
+      context: ./NewsVideoGenerator
+      dockerfile: Dockerfile
+    depends_on:
+      - rabbitmq
+    environment:
+      - RABBITMQ_HOST=rabbitmq
 
 volumes:
   news_rabbitmq_data:
