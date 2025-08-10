@@ -1,13 +1,15 @@
-
 require('dotenv').config();
-const ffmpeg = require('fluent-ffmpeg');
+
 const fs = require('fs');
 const path = require('path');
-const { consume, publish } = require('../../shared/rabbitmq');
-const { video } = require('../../shared/config');
+const { consume, publish, ack } = require('./rabbitmq');
+const { video, youtube } = require('./config');
+const {generateVideo, initializeBrowser} = require('./generateVideo');
 
 async function main() {
     try {
+        await initializeBrowser();
+
         console.log(' [*] Waiting for messages. To exit press CTRL+C');
 
         await consume(video.queue, video.inputRoutingKey, async (msg) => {
@@ -19,45 +21,21 @@ async function main() {
                 console.log(` [x] Received ${headline} (${id})`);
 
                 // Create a temporary file for the audio
-                const audioPath = path.join(__dirname, `${id}.mp3`);
+                const audioPath = path.join(__dirname, `${id}.wav`);
                 fs.writeFileSync(audioPath, audio);
 
                 // Placeholder for video generation
                 const videoPath = path.join(__dirname, `${id}.mp4`);
+                const imagePath = path.join(__dirname, `${id}.png`);
 
                 // For now, we'll just create a dummy video file
                 // In the next step, we'll implement the actual video generation
-                await new Promise((resolve, reject) => {
-                    ffmpeg()
-                        .input(audioPath)
-                        .input('color=c=black:s=1280x720:d=5') // Black background, 5 seconds duration
-                        .inputFormat('lavfi')
-                        .complexFilter([
-                            {
-                                filter: 'drawtext',
-                                options: {
-                                    text: headline,
-                                    fontsize: 60,
-                                    fontcolor: 'white',
-                                    x: '(w-text_w)/2',
-                                    y: '(h-text_h)/2',
-                                    box: 1,
-                                    boxcolor: 'black@0.5',
-                                    boxborderw: 5
-                                }
-                            }
-                        ])
-                        .output(videoPath)
-                        .on('end', () => resolve())
-                        .on('error', (err) => reject(err))
-                        .run();
-                });
-
+                await generateVideo(audioPath, videoPath, headline, imagePath);
 
                 console.log(` [x] Generated video for ${headline} (${id})`);
 
                 // Publish the video
-                await publish(video.outputRoutingKey, fs.readFileSync(videoPath), {
+                await publish(youtube.inputRoutingKey, fs.readFileSync(videoPath), {
                     id: id,
                     headline: headline
                 });
@@ -68,7 +46,9 @@ async function main() {
                 fs.unlinkSync(audioPath);
                 fs.unlinkSync(videoPath);
 
-                // channel.ack(msg);
+                // Acknowledge the message
+                await ack(msg);
+                console.log(` [x] acknowledge video for ${headline} (${id})`);
             }
         });
     } catch (error) {

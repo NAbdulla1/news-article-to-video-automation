@@ -18,7 +18,7 @@ async function connect() {
 
 async function publish(routingKey, message, headers = {}) {
     const ch = await connect();
-    ch.publish(config.rabbitmq.exchange, routingKey, Buffer.from(JSON.stringify(message)), { headers });
+    ch.publish(config.rabbitmq.exchange, routingKey, message, { headers });
 }
 
 async function consume(queue, routingKey, callback) {
@@ -28,8 +28,16 @@ async function consume(queue, routingKey, callback) {
     ch.consume(queue, callback, { noAck: false });
 }
 
+async function ack(msg) {
+    if (msg) {
+        const ch = await connect();
+        ch.ack(msg);
+    }
+}
+
 module.exports = {
     connect,
     publish,
     consume,
+    ack
 };
