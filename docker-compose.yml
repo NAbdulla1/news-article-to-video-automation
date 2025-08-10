@@ -10,6 +10,11 @@ services:
       - RABBITMQ_DEFAULT_PASS=news_password
     volumes:
       - news_rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   app_db:
     image: mongo:7.0.20-jammy
@@ -21,33 +26,44 @@ services:
       - app_db_data:/data/db
     ports:
       - "27017:27017"
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
 
   scrapper:
     build:
       context: ./NewsScrapper
       dockerfile: Dockerfile
     depends_on:
-      - app_db
+      app_db:
+        condition: service_healthy
 
-  newsttspython:
-    build:
-      context: ./NewsTTSPython
-      dockerfile: Dockerfile
-    depends_on:
-      - rabbitmq
-    environment:
-      - RABBITMQ_HOST=rabbitmq
+#  generated audio quality is not good, so we are not using this service
+#  we are using the NewsAppTTS Node Android app
+#  newsttspython:
+#    build:
+#      context: ./NewsTTSPython
+#      dockerfile: Dockerfile
+#    depends_on:
+#      rabbitmq:
+#        condition: service_healthy
+#    environment:
+#      - RABBITMQ_HOST=rabbitmq
 
   newsvideogenerator:
     build:
       context: ./NewsVideoGenerator
       dockerfile: Dockerfile
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     environment:
       - RABBITMQ_HOST=rabbitmq
 
-youtube:
+  youtube:
     build:
       context: ./YoutubeService
       dockerfile: Dockerfile
