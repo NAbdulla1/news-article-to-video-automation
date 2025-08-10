@@ -1,4 +1,5 @@
-import { timeout } from "../config.js";
+import config from "../config.js";
+const { timeout } = config;
 
 const interviewContentSelector = "#container .story-grid .story-content-wrapper .story-content .storyCard";
 

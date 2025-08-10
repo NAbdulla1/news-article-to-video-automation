@@ -1,9 +1,12 @@
-import { timeout } from "../config.js";
+import config from "../config.js";
 import { ContentScrapper } from "./ContentScrapper.js";
 import { InterviewContentScrapper } from "./InterviewContentScrapper.js";
 import UrlRepository from "../db/UrlRepository.js";
 import { UrlStatusEnum } from "../UrlStatusEnum.js";
-
+const { tts } = config;
+import crypto from 'crypto';
+import { publish } from "../rabbitmq.js";
+const timeout = config.timeout;
 const sourceName = "prothom-alo";
 const urlToScrap = "https://www.prothomalo.com/opinion";
 
@@ -72,19 +75,27 @@ async function scrapOpinions(page) {
     }
 
     let scrappedOpnions = [];
-    for (let { url: link } of links) {
+    for (let { url: link, data: article} of links) {
         console.log("Processing link:", link);
         try {
-            let scrapper = null;
-            if (link.includes('/interview/')) {
-                scrapper = new InterviewContentScrapper(page);
-            } else {
-                scrapper = new ContentScrapper(page);
+            if (!article) {
+                let scrapper = null;
+                if (link.includes('/interview/')) {
+                    scrapper = new InterviewContentScrapper(page);
+                } else {
+                    scrapper = new ContentScrapper(page);
+                }
+
+                article = await scrapper.scrapContent(link);
+                scrappedOpnions.push(article);
             }
 
-            const article = await scrapper.scrapContent(link);
-            scrappedOpnions.push(article);
             await UrlRepository.updateUrl(link, sourceName, UrlStatusEnum.PREPARING_AUDIO, article);
+
+            const id = crypto.randomUUID();
+            await publish(tts.inputRoutingKey, { ...article, id });
+            console.log(`Sent: ${article.headline} (${id})`);
+
             //make the url complete after getting audio
         } catch (e) {
             console.log(e.message, link);

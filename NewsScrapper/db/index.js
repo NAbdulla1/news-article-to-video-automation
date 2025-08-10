@@ -1,6 +1,7 @@
 import { MongoClient } from 'mongodb';
 
-import { databaseUrl } from '../config.js';
+import config from '../config.js';
+const { databaseUrl } = config;
 
 const uri = databaseUrl;
 const dbName = 'scrapper_db';
