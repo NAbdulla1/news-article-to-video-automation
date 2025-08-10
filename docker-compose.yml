@@ -47,6 +47,16 @@ services:
     environment:
       - RABBITMQ_HOST=rabbitmq
 
+youtube:
+    build:
+      context: ./YoutubeService
+      dockerfile: Dockerfile
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./generated_videos:/videos
+
 volumes:
   news_rabbitmq_data:
   app_db_data:
