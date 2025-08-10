@@ -39,7 +39,7 @@ public class NewsArticleAdapter extends RecyclerView.Adapter<NewsArticleAdapter.
         TextView tvStatus = holder.itemView.findViewById(R.id.tvStatus);
         ProgressBar pbProcessing = holder.itemView.findViewById(R.id.pbProcessing);
 
-        tvNewsTitle.setText(this.newsArticles.get(position).getArticle().substring(0, 25));
+        tvNewsTitle.setText(this.newsArticles.get(position).getHeadline().substring(0, 25));
         tvStatus.setText(this.newsArticles.get(position).getStatus().toString());
 
         if (this.newsArticles.get(position).getStatus() == NewsArticleStatus.PROCESSING) {

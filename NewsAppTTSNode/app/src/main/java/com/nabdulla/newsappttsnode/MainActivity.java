@@ -106,6 +106,7 @@ public class MainActivity extends AppCompatActivity {
         if (action == BroadcastAction.NEWS_ARTICLE_ADDED) {
             NewsArticleData newsArticleData = new NewsArticleData(
                     id,
+                    intent.getStringExtra("headline"),
                     intent.getStringExtra("content"),
                     status
             );

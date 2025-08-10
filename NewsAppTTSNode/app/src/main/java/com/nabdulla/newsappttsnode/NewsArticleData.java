@@ -3,22 +3,24 @@ package com.nabdulla.newsappttsnode;
 import java.util.UUID;
 
 public class NewsArticleData {
+    private final String headline;
     private final String article;
     private final String id;
     private NewsArticleStatus status;
 
-    public NewsArticleData(String article) {
-        this(UUID.randomUUID().toString(), article, NewsArticleStatus.IN_QUEUE);
-    }
-
-    public NewsArticleData(String id, String article, NewsArticleStatus status) {
+    public NewsArticleData(String id, String headline, String article, NewsArticleStatus status) {
         this.id = id;
+        this.headline = headline;
         this.article = article;
         this.status = status;
     }
 
     public String getId() {
         return id;
+    }
+
+    public String getHeadline() {
+        return this.headline;
     }
 
     public String getArticle() {

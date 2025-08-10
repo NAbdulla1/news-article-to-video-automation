@@ -15,6 +15,7 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import com.google.gson.Gson;
 import com.nabdulla.newsappttsnode.Utils.NotificationUtils;
 import com.nabdulla.newsappttsnode.businesslogic.ResultCallback;
 import com.nabdulla.newsappttsnode.businesslogic.TextToAudioConverter;
@@ -29,8 +30,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -87,6 +90,7 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
         for (NewsArticleData data : textQueue) {
             articles.add(new NewsArticleData(
                     data.getId(),
+                    data.getHeadline(),
                     data.getArticle(),
                     data.getStatus()
             ));
@@ -128,14 +132,22 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
                         channel.basicConsume(queueName, true, (consumerTag, delivery) -> {
                             String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
 
+                            Gson gson = new Gson();
+                            Map<String, Object> articleData = gson.fromJson(message, Map.class);
+
+                            String content = (String)articleData.get("content");
+                            String headline = (String)articleData.get("headline");
+                            String id = (String)articleData.get("id");
+
                             Log.d("RabbitMQ", "Received: " + message);
 
                             Handler mainHandler = new Handler(Looper.getMainLooper());
                             mainHandler.post(() -> {
-                                NewsArticleData newsArticleData = new NewsArticleData(message);
+                                NewsArticleData newsArticleData = new NewsArticleData(id, headline, content, NewsArticleStatus.IN_QUEUE);
                                 textQueue.add(newsArticleData);
                                 broadcastArticleInfo(
                                         newsArticleData.getId(),
+                                        newsArticleData.getHeadline(),
                                         newsArticleData.getArticle(),
                                         newsArticleData.getStatus(),
                                         BroadcastAction.NEWS_ARTICLE_ADDED
@@ -182,9 +194,10 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 
-    private void broadcastArticleInfo(String id, String content, NewsArticleStatus status, BroadcastAction action) {
+    private void broadcastArticleInfo(String id, String headline, String content, NewsArticleStatus status, BroadcastAction action) {
         Intent intent = new Intent("MQ_SERVICE_UPDATE");
         intent.putExtra("id", id);
+        intent.putExtra("headline", headline);
         intent.putExtra("content", content);
         intent.putExtra("status", status);
         intent.putExtra("action", action);
@@ -207,6 +220,7 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
         newsArticle.setStatus(NewsArticleStatus.PROCESSING);
         broadcastArticleInfo(
                 newsArticle.getId(),
+                newsArticle.getHeadline(),
                 newsArticle.getArticle(),
                 newsArticle.getStatus(),
                 BroadcastAction.NEWS_ARTICLE_STATUS_CHANGED
@@ -249,16 +263,20 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
     }
 
     @Override
-    public void audioFile(String id, File file) throws IOException {
+    public void audioFile(String id, String headline, File file) throws IOException {
         String exchange = prefs.getString("exchange", "news-app-exchange");
         String outputRoutingKey = prefs.getString("output_routing_key", "output.tts");
 
-        broadcastArticleInfo(id, "", NewsArticleStatus.SUCCESS, BroadcastAction.NEWS_ARTICLE_STATUS_CHANGED);
+        broadcastArticleInfo(id, "", "", NewsArticleStatus.SUCCESS, BroadcastAction.NEWS_ARTICLE_STATUS_CHANGED);
         byte[] audioBytes = readFileToBytes(file);
 
         AMQP.BasicProperties props = new AMQP.BasicProperties.Builder()
                 .contentType("audio/wav")
                 .deliveryMode(2) // persistent
+                .headers(new HashMap<>(){{
+                    put("headline", headline);
+                    put("id", id);
+                }})
                 .build();
 
         channel.basicPublish(
@@ -275,7 +293,7 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
 
     @Override
     public void error(String id, String speechSegmentId) {
-        broadcastArticleInfo(id, "", NewsArticleStatus.FAILED, BroadcastAction.NEWS_ARTICLE_STATUS_CHANGED);
+        broadcastArticleInfo(id, "", "", NewsArticleStatus.FAILED, BroadcastAction.NEWS_ARTICLE_STATUS_CHANGED);
         Log.i("nf", "a message got error while processing");
         ttsProcessing.set(false);
         processNext(true);
@@ -288,6 +306,7 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
                 lastArticleData.setStatus(NewsArticleStatus.IN_QUEUE);
                 broadcastArticleInfo(
                         lastArticleData.getId(),
+                        lastArticleData.getHeadline(),
                         lastArticleData.getArticle(),
                         lastArticleData.getStatus(),
                         BroadcastAction.NEWS_ARTICLE_ADDED

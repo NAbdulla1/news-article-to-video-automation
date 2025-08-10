@@ -22,7 +22,7 @@ public class TextToAudioConverter {
 
     public void convert(NewsArticleData newsArticle) {
         List<List<String>> paragraphs = splitTextIntoParagraphs(newsArticle.getArticle());
-        FileSynthesizer fileSynthesizer = new FileSynthesizer(tts, paragraphs, newsArticle.getId(), outputDir, this.callback);
+        FileSynthesizer fileSynthesizer = new FileSynthesizer(tts, newsArticle.getHeadline(), paragraphs, newsArticle.getId(), outputDir, this.callback);
         fileSynthesizer.saveToFile();
     }
 

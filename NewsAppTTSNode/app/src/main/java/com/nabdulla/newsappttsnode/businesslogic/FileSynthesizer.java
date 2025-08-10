@@ -12,13 +12,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class FileSynthesizer {
     private final String id;
+    private final String headline;
     private final ResultCallback sendResult;
     private final List<SpeechSegment> speechSegments;
     private final AtomicInteger speechSegmentIndex;
     private final String outputAudioFile;
 
-    public FileSynthesizer(TextToSpeech tts, List<List<String>> paragraphs, String id, String outputDir, ResultCallback callback) {
+    public FileSynthesizer(TextToSpeech tts, String headline, List<List<String>> paragraphs, String id, String outputDir, ResultCallback callback) {
         this.id = id;
+        this.headline = headline;
         this.speechSegments = new ArrayList<>();
         this.speechSegmentIndex = new AtomicInteger(0);
         this.outputAudioFile = outputDir + "/" + this.id + ".wav";
@@ -84,7 +86,7 @@ public class FileSynthesizer {
                     outputFile
             );
             cleanFiles();
-            this.sendResult.audioFile(this.id, outputFile);
+            this.sendResult.audioFile(this.id, this.headline, outputFile);
         }
     }
 
