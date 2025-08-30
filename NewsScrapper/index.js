@@ -1,10 +1,9 @@
 import 'dotenv/config';
 import express from 'express';
 import { chromium } from "playwright";
-import { scrapProthomAlo, processArticleLink } from "./prothom-alo/opinion-index.js";
+import { scrapProthomAlo, processArticleLink, publishArticle} from "./prothom-alo/opinion-index.js";
 import UrlRepository from "./db/UrlRepository.js";
 import { UrlStatusEnum } from "./UrlStatusEnum.js";
-import { z } from 'zod';
 import { processLinkSchema } from './schemas/processLinkSchema.js';
 
 const app = express();
@@ -44,7 +43,9 @@ app.post('/process-failed/:id', async (req, res) => {
         }
         const browser = await chromium.launch({ headless: true });
         const page = await browser.newPage();
-        await processArticleLink(row.url, row.data, page, []);
+        const article = await processArticleLink(row.url, row.data, page, []);
+        const publishedId = await publishArticle(article);
+        console.log(`Published: ${article?.headline} (${publishedId})`);
         await browser.close();
         res.status(200).json({ status: 'processed', id });
     } catch (err) {
@@ -64,9 +65,11 @@ app.post('/process-link', async (req, res) => {
         await UrlRepository.insertUrl({ url: link, source, status: UrlStatusEnum.PENDING });
         const browser = await chromium.launch({ headless: true });
         const page = await browser.newPage();
-        const result = await processArticleLink(link, null, page, []);
+        const article = await processArticleLink(link, null, page, []);
+        const publishedId = await publishArticle(article);
+        console.log(`Published: ${article?.headline} (${publishedId})`);
         await browser.close();
-        res.status(200).json({ status: 'processed', link, source, result });
+        res.status(200).json({ status: 'processed', link, source, result: article });
     } catch (err) {
         console.error('Process link error:', err);
         res.status(500).json({ status: 'error', error: err.message });

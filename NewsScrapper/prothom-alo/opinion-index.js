@@ -75,35 +75,46 @@ async function scrapOpinions(page) {
     let scrappedOpnions = [];
     for (let { url: link, data: article} of links) {
         article = await processArticleLink(link, article, page, scrappedOpnions);
+        const id = await publishArticle(article);
+        console.log(`Published: ${article.headline} (${id})`);
     }
 
     return scrappedOpnions;
 }
 
+export function getScrapper(link, page) {
+    if (link.includes('/interview/')) {
+        return new InterviewContentScrapper(page);
+    } else {
+        return new ContentScrapper(page);
+    }
+}
+
+export async function scrapArticle(link, article, page) {
+    if (article) return article;
+    const scrapper = getScrapper(link, page);
+    return await scrapper.scrapContent(link);
+}
+
+export async function updateArticleStatus(link, article, status) {
+    await UrlRepository.updateUrl(link, sourceName, status, article);
+}
+
+export async function publishArticle(article) {
+    const id = crypto.randomUUID();
+    await publish(TTS_INPUT_ROUTING_KEY, { ...article, id });
+    return id;
+}
+
 export async function processArticleLink(link, article, page, scrappedOpnions) {
     console.log("Processing link:", link);
     try {
-        if (!article) {
-            let scrapper = null;
-            if (link.includes('/interview/')) {
-                scrapper = new InterviewContentScrapper(page);
-            } else {
-                scrapper = new ContentScrapper(page);
-            }
-
-            article = await scrapper.scrapContent(link);
-            scrappedOpnions.push(article);
-        }
-
-        await UrlRepository.updateUrl(link, sourceName, UrlStatusEnum.COMPLETED, article);
-
-        const id = crypto.randomUUID();
-        await publish(TTS_INPUT_ROUTING_KEY, { ...article, id });
-        console.log(`Published: ${article.headline} (${id})`);
+        article = await scrapArticle(link, article, page);
+        scrappedOpnions.push(article);
+        await updateArticleStatus(link, article, UrlStatusEnum.COMPLETED);
     } catch (e) {
         console.error(e, link);
-        await UrlRepository.updateUrl(link, sourceName, UrlStatusEnum.FAILED);
+        await updateArticleStatus(link, article, UrlStatusEnum.FAILED);
     }
-
     return article;
 }
