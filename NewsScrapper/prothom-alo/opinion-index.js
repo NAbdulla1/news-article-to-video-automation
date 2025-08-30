@@ -1,12 +1,10 @@
-import config from "../config.js";
+import { TIMEOUT, TTS_INPUT_ROUTING_KEY } from "../config.js";
 import { ContentScrapper } from "./ContentScrapper.js";
 import { InterviewContentScrapper } from "./InterviewContentScrapper.js";
 import UrlRepository from "../db/UrlRepository.js";
 import { UrlStatusEnum } from "../UrlStatusEnum.js";
-const { tts } = config;
 import crypto from 'crypto';
 import { publish } from "../rabbitmq.js";
-const timeout = config.timeout;
 const sourceName = "prothom-alo";
 const urlToScrap = "https://www.prothomalo.com/opinion";
 
@@ -17,8 +15,8 @@ const midPageScrollLocation = "#container div[data-infinite-scroll=\"2\"]";
 
 export async function scrapProthomAlo(page) {
     console.log("Scrapping Prothom Alo");
-    await page.goto(urlToScrap, { timeout });
-    await page.waitForSelector(opinionStartLinksSelector, { timeout }); // what happens if timeout reached?
+    await page.goto(urlToScrap, { timeout: TIMEOUT });
+    await page.waitForSelector(opinionStartLinksSelector, { timeout: TIMEOUT }); // what happens if timeout reached?
 
     const opinionStartLinks = await page.$$eval(opinionStartLinksSelector, (aTags) => {
         return aTags.map(aTag => aTag.href);
@@ -61,7 +59,7 @@ export async function scrapProthomAlo(page) {
         }
 
         infiniteScrollLinkCount += newlyLoadedLinks.length;
-        await page.locator(moreOpinionBtnSelector).click({ timeout });
+        await page.locator(moreOpinionBtnSelector).click({ timeout: TIMEOUT });
     }
 
     return await scrapOpinions(page);
@@ -93,7 +91,7 @@ async function scrapOpinions(page) {
             await UrlRepository.updateUrl(link, sourceName, UrlStatusEnum.PREPARING_AUDIO, article);
 
             const id = crypto.randomUUID();
-            await publish(tts.inputRoutingKey, { ...article, id });
+            await publish(TTS_INPUT_ROUTING_KEY, { ...article, id });
             console.log(`Sent: ${article.headline} (${id})`);
 
             //make the url complete after getting audio

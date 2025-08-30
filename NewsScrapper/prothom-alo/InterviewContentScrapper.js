@@ -1,5 +1,4 @@
-import config from "../config.js";
-const { timeout } = config;
+import { TIMEOUT } from "../config.js";
 
 const interviewContentSelector = "#container .story-grid .story-content-wrapper .story-content .storyCard";
 
@@ -24,9 +23,9 @@ export class InterviewContentScrapper {
     }
 
     async scrapContent(urlToScrap) {
-        await this.page.goto(urlToScrap, { timeout });
+        await this.page.goto(urlToScrap, { timeout: TIMEOUT });
 
-        await this.page.waitForSelector(interviewContentSelector, { timeout });
+        await this.page.waitForSelector(interviewContentSelector, { timeout: TIMEOUT });
 
         const headline = await this.scrapHeadline();
 

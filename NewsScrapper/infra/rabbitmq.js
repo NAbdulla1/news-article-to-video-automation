@@ -1,6 +1,5 @@
-
 import amqp from 'amqplib';
-import config from './config.js';
+import { RABBITMQ_HOST, RABBITMQ_USER, RABBITMQ_PASS, RABBITMQ_EXCHANGE } from '../config.js';
 
 let channel = null;
 
@@ -9,22 +8,22 @@ async function connect() {
         return channel;
     }
 
-    const connection = await amqp.connect(`amqp://${config.rabbitmq.user}:${config.rabbitmq.pass}@${config.rabbitmq.host}`);
+    const connection = await amqp.connect(`amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@${RABBITMQ_HOST}`);
     channel = await connection.createChannel();
-    await channel.assertExchange(config.rabbitmq.exchange, 'direct', { durable: true });
+    await channel.assertExchange(RABBITMQ_EXCHANGE, 'direct', { durable: true });
 
     return channel;
 }
 
 async function publish(routingKey, message, headers = {}) {
     const ch = await connect();
-    ch.publish(config.rabbitmq.exchange, routingKey, Buffer.from(JSON.stringify(message)), { headers });
+    ch.publish(RABBITMQ_EXCHANGE, routingKey, Buffer.from(JSON.stringify(message)), { headers });
 }
 
 async function consume(queue, routingKey, callback) {
     const ch = await connect();
     await ch.assertQueue(queue, { durable: true });
-    await ch.bindQueue(queue, config.rabbitmq.exchange, routingKey);
+    await ch.bindQueue(queue, RABBITMQ_EXCHANGE, routingKey);
     ch.consume(queue, callback, { noAck: false });
 }
 
