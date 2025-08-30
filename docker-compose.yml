@@ -1,13 +1,15 @@
+version: '3.8'
 
 services:
   rabbitmq:
     image: rabbitmq:3.13.7-management
+    container_name: news_rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
     environment:
-      - RABBITMQ_DEFAULT_USER=news_user
-      - RABBITMQ_DEFAULT_PASS=news_password
+      RABBITMQ_DEFAULT_USER: news_user
+      RABBITMQ_DEFAULT_PASS: news_password
     volumes:
       - news_rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -15,13 +17,15 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+    restart: unless-stopped
 
   app_db:
     image: mongo:7.0.20-jammy
-    restart: on-failure
+    container_name: news_mongo
+    restart: unless-stopped
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=news_user
-      - MONGO_INITDB_ROOT_PASSWORD=db_pass
+      MONGO_INITDB_ROOT_USERNAME: news_user
+      MONGO_INITDB_ROOT_PASSWORD: db_pass
     volumes:
       - app_db_data:/data/db
     ports:
@@ -37,41 +41,53 @@ services:
     build:
       context: ./NewsScrapper
       dockerfile: Dockerfile
+    container_name: news_scrapper
     depends_on:
       app_db:
         condition: service_healthy
+    restart: unless-stopped
+    environment:
+      MONGO_HOST: app_db
+      RABBITMQ_HOST: rabbitmq
 
-#  generated audio quality is not good, so we are not using this service
-#  we are using the NewsAppTTS Node Android app
-#  newsttspython:
-#    build:
-#      context: ./NewsTTSPython
-#      dockerfile: Dockerfile
-#    depends_on:
-#      rabbitmq:
-#        condition: service_healthy
-#    environment:
-#      - RABBITMQ_HOST=rabbitmq
+# generated audio quality is not good, so we are not using this service
+# we are using the NewsAppTTS Node Android app
+# newsttspython:
+#   build:
+#     context: ./NewsTTSPython
+#     dockerfile: Dockerfile
+#   depends_on:
+#     rabbitmq:
+#       condition: service_healthy
+#   environment:
+#     RABBITMQ_HOST: rabbitmq
+#   restart: unless-stopped
 
   newsvideogenerator:
     build:
       context: ./NewsVideoGenerator
       dockerfile: Dockerfile
+    container_name: news_video_generator
     depends_on:
       rabbitmq:
         condition: service_healthy
     environment:
-      - RABBITMQ_HOST=rabbitmq
+      RABBITMQ_HOST: rabbitmq
+    restart: unless-stopped
 
   youtube:
     build:
       context: ./YoutubeService
       dockerfile: Dockerfile
+    container_name: news_youtube
     depends_on:
       rabbitmq:
         condition: service_healthy
     volumes:
       - ./generated_videos:/videos
+    restart: unless-stopped
+    environment:
+      RABBITMQ_HOST: rabbitmq
 
 volumes:
   news_rabbitmq_data:
