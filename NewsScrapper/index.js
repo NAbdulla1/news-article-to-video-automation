@@ -76,6 +76,16 @@ app.post('/process-link', async (req, res) => {
     }
 });
 
+app.get('/pending-urls', async (req, res) => {
+    try {
+        const urls = await UrlRepository.getNonCompletedUrls();
+        res.status(200).json({ status: 'ok', urls });
+    } catch (err) {
+        console.error('Error fetching pending urls:', err);
+        res.status(500).json({ status: 'error', error: err.message });
+    }
+});
+
 // Placeholder for future routes
 // app.get('/other-route', ...)
 

@@ -29,6 +29,10 @@ class UrlRepository {
         const result = await this.collection.updateOne({ url, source }, { $set: updateData });
         return result;
     }
+
+    async getNonCompletedUrls() {
+        return await this.collection.find({ status: { $ne: UrlStatusEnum.COMPLETED } }).toArray();
+    }
 }
 
 export default new UrlRepository(await connect());
