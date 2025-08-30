@@ -5,6 +5,7 @@ import { scrapProthomAlo, processArticleLink, publishArticle} from "./prothom-al
 import UrlRepository from "./db/UrlRepository.js";
 import { UrlStatusEnum } from "./UrlStatusEnum.js";
 import { processLinkSchema } from './schemas/processLinkSchema.js';
+import { NewsSourceEnum } from './schemas/SourceEnum.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -84,6 +85,13 @@ app.get('/pending-urls', async (req, res) => {
         console.error('Error fetching pending urls:', err);
         res.status(500).json({ status: 'error', error: err.message });
     }
+});
+
+app.get('/news-sources', (req, res) => {
+    res.status(200).json({
+        status: 'ok',
+        sources: NewsSourceEnum
+    });
 });
 
 // Placeholder for future routes
