@@ -4,7 +4,7 @@ import { InterviewContentScrapper } from "./InterviewContentScrapper.js";
 import UrlRepository from "../db/UrlRepository.js";
 import { UrlStatusEnum } from "../UrlStatusEnum.js";
 import crypto from 'crypto';
-import { publish } from "../rabbitmq.js";
+import { publish } from "../infra/rabbitmq.js";
 const sourceName = "prothom-alo";
 const urlToScrap = "https://www.prothomalo.com/opinion";
 
