@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import cron from 'node-cron';
 import { chromium } from "playwright";
 import { scrapProthomAlo, processArticleLink, publishArticle} from "./prothom-alo/opinion-index.js";
 import UrlRepository from "./db/UrlRepository.js";
@@ -17,42 +18,22 @@ app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok' });
 });
 
-// Start scrapping on POST request
-app.post('/scrap', async (req, res) => {
-    try {
-        console.log("Received request to start scrapping...");
-        const browser = await chromium.launch({ headless: true });
-        const page = await browser.newPage();
-        res.status(200).json({ status: 'scrapping started' });
-        await scrapProthomAlo(page);
-        await browser.close();
-        console.log("scrapper finished.");
-    } catch (err) {
-        console.error("Scrapper error:", err);
-        res.status(500).json({ status: 'error', error: err.message });
-    }
-});
+let isScrapping = false;
 
-app.post('/process-failed/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        // Find the row with the given id and failed status
-        const db = await UrlRepository.collection;
-        const row = await db.findOne({ _id: id, status: UrlStatusEnum.FAILED });
-        if (!row) {
-            return res.status(404).json({ status: 'not found or not failed' });
-        }
-        const browser = await chromium.launch({ headless: true });
-        const page = await browser.newPage();
-        const article = await processArticleLink(row.url, row.data, page, []);
-        const publishedId = await publishArticle(article);
-        console.log(`Published: ${article?.headline} (${publishedId})`);
-        await browser.close();
-        res.status(200).json({ status: 'processed', id });
-    } catch (err) {
-        console.error("Process failed article error:", err);
-        res.status(500).json({ status: 'error', error: err.message });
+cron.schedule('* * * * *', async () => {
+    if (isScrapping) {
+        console.log("Scrapping already in progress, skipping this run.");
+        return;
     }
+    isScrapping = true;
+    console.log("Starting scheduled scrapping task...");
+
+    const browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage();
+    await scrapProthomAlo(page);
+    await browser.close();
+    isScrapping = false;
+    console.log("Scheduled scrapping task completed.");
 });
 
 app.post('/process-link', async (req, res) => {
