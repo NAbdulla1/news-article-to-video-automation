@@ -1,7 +1,8 @@
 FROM node:20-slim
 
-# 1. Install Chromium dependencies + FFmpeg
+# 1. Install Chromium (system) + dependencies + FFmpeg
 RUN apt-get update && apt-get install -y \
+  chromium \
   wget \
   ca-certificates \
   fonts-liberation \
@@ -32,9 +33,10 @@ WORKDIR /app
 # 3. Install Node.js dependencies including Puppeteer
 COPY package.json ./
 
-# 5. Puppeteer environment (let it download Chromium)
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=false
-ENV PUPPETEER_EXECUTABLE_PATH=""
+
+# 5. Puppeteer environment: use system Chromium, skip Puppeteer's download
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 RUN npm install
 
