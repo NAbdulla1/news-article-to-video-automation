@@ -7,6 +7,7 @@ import UrlRepository from "./db/UrlRepository.js";
 import { UrlStatusEnum } from "./UrlStatusEnum.js";
 import { processLinkSchema } from './schemas/processLinkSchema.js';
 import { NewsSourceEnum } from './schemas/SourceEnum.js';
+import logger from './logger.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,18 +23,23 @@ let isScrapping = false;
 
 cron.schedule('* * * * *', async () => {
     if (isScrapping) {
-        console.log("Scrapping already in progress, skipping this run.");
+        logger.info("Scrapping already in progress, skipping this run.");
         return;
     }
     isScrapping = true;
-    console.log("Starting scheduled scrapping task...");
+    logger.info("Starting scheduled scrapping task...");
 
-    const browser = await chromium.launch({ headless: true });
-    const page = await browser.newPage();
-    await scrapProthomAlo(page);
-    await browser.close();
-    isScrapping = false;
-    console.log("Scheduled scrapping task completed.");
+    try {
+        const browser = await chromium.launch({ headless: true });
+        const page = await browser.newPage();
+        await scrapProthomAlo(page);
+        await browser.close();
+        isScrapping = false;
+        logger.info("Scheduled scrapping task completed.");
+    } catch (err) {
+        isScrapping = false;
+        logger.error("Error during scheduled scrapping task:", err);
+    }
 });
 
 app.post('/process-link', async (req, res) => {
@@ -49,11 +55,11 @@ app.post('/process-link', async (req, res) => {
         const page = await browser.newPage();
         const article = await processArticleLink(link, null, page, []);
         const publishedId = await publishArticle(article);
-        console.log(`Published: ${article?.headline} (${publishedId})`);
+        logger.info(`Published: ${article?.headline} (${publishedId})`);
         await browser.close();
         res.status(200).json({ status: 'processed', link, source, result: article });
     } catch (err) {
-        console.error('Process link error:', err);
+        logger.error('Process link error:', err);
         res.status(500).json({ status: 'error', error: err.message });
     }
 });
@@ -63,7 +69,7 @@ app.get('/pending-urls', async (req, res) => {
         const urls = await UrlRepository.getNonCompletedUrls();
         res.status(200).json({ status: 'ok', urls });
     } catch (err) {
-        console.error('Error fetching pending urls:', err);
+        logger.error('Error fetching pending urls:', err);
         res.status(500).json({ status: 'error', error: err.message });
     }
 });
@@ -79,5 +85,5 @@ app.get('/news-sources', (req, res) => {
 // app.get('/other-route', ...)
 
 app.listen(PORT, () => {
-    console.log(`Express server listening on port ${PORT}`);
+    logger.info(`Express server listening on port ${PORT}`);
 });

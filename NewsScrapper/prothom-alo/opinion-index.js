@@ -5,6 +5,7 @@ import UrlRepository from "../db/UrlRepository.js";
 import { UrlStatusEnum } from "../UrlStatusEnum.js";
 import crypto from 'crypto';
 import { publish } from "../infra/rabbitmq.js";
+import logger from '../logger.js';
 const sourceName = "prothom-alo";
 const urlToScrap = "https://www.prothomalo.com/opinion";
 
@@ -14,7 +15,7 @@ const moreOpinionBtnSelector = "#container .more .load-more-content";
 const midPageScrollLocation = "#container div[data-infinite-scroll=\"2\"]";
 
 export async function scrapProthomAlo(page) {
-    console.log("Scrapping Prothom Alo");
+    logger.info("Scrapping Prothom Alo");
     await page.goto(urlToScrap, { timeout: TIMEOUT });
     await page.waitForSelector(opinionStartLinksSelector, { timeout: TIMEOUT }); // what happens if timeout reached?
 
@@ -54,7 +55,7 @@ export async function scrapProthomAlo(page) {
         }
 
         if (alreadyLoadedLinkCount >= 5) {
-            console.log("Already loaded 5 links, stopping infinite scroll");
+            logger.info("Already loaded 5 links, stopping infinite scroll");
             break;
         }
 
@@ -68,7 +69,7 @@ export async function scrapProthomAlo(page) {
 async function scrapOpinions(page) {
     let links = await UrlRepository.getPendingUrls(sourceName);
     if (links.length === 0) {
-        console.log("No pending links to scrap");
+        logger.info("No pending links to scrap");
         return [];
     }
 
@@ -76,7 +77,7 @@ async function scrapOpinions(page) {
     for (let { url: link, data: article} of links) {
         article = await processArticleLink(link, article, page, scrappedOpnions);
         const id = await publishArticle(article);
-        console.log(`Published: ${article.headline} (${id})`);
+        logger.info(`Published: ${article.headline} (${id})`);
     }
 
     return scrappedOpnions;
@@ -107,13 +108,13 @@ export async function publishArticle(article) {
 }
 
 export async function processArticleLink(link, article, page, scrappedOpnions) {
-    console.log("Processing link:", link);
+    logger.info("Processing link:", link);
     try {
         article = await scrapArticle(link, article, page);
         scrappedOpnions.push(article);
         await updateArticleStatus(link, article, UrlStatusEnum.COMPLETED);
     } catch (e) {
-        console.error(e, link);
+        logger.error(e, link);
         await updateArticleStatus(link, article, UrlStatusEnum.FAILED);
     }
     return article;

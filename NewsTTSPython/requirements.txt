@@ -1,3 +1,4 @@
 pika
 gTTS
 pydub
+python-logstash-async

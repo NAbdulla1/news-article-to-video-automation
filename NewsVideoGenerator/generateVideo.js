@@ -6,11 +6,12 @@ const Mutex = require('async-mutex').Mutex;
 const mutex = new Mutex(); // Limit concurrent video generation
 const fontPath = path.resolve(__dirname, 'fonts', 'SolaimanLipi.ttf');
 const fontData = fs.readFileSync(fontPath).toString('base64');
+const logger = require('./logger');
 
 let browser, page;
 
 module.exports.initializeBrowser = async function initializeBrowser() {
-  console.log("🔄 Initializing browser...");
+  logger.info("🔄 Initializing browser...");
   browser = await puppeteer.launch({
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium'
@@ -42,12 +43,12 @@ async function generateImageFromText(imagePath, text) {
   `);
 
   await page.screenshot({ path: imagePath });
-  console.log("✅ Image created:", imagePath);
+  logger.info("✅ Image created:", imagePath);
 }
 
 function createVideoFromImageAndAudio(imagePath, audioPath, videoPath) {
   return new Promise((resolve, reject) => {
-    console.log(`🎬 Creating video from ${videoPath}`);
+    logger.info(`🎬 Creating video from ${videoPath}`);
     ffmpeg()
       .input(imagePath)
       .inputOptions(['-loop 1']) // loop image continuously
@@ -62,11 +63,11 @@ function createVideoFromImageAndAudio(imagePath, audioPath, videoPath) {
       ])
       .output(videoPath)
       .on('end', () => {
-        console.log("✅ Video created:", videoPath);
+        logger.info("✅ Video created:", videoPath);
         resolve();
       })
       .on('error', (err) => {
-        console.error("❌ FFmpeg error:", err);
+        logger.error("❌ FFmpeg error:", err);
         reject(err);
       })
       .run();
@@ -84,11 +85,11 @@ module.exports.generateVideo = async function generateVideo(audioPath, videoPath
       await fs.promises.unlink(imagePath); // Clean up the image file
     });
   } catch (error) {
-    console.error("❌ Error in video generation:", error);
+    logger.error("❌ Error in video generation:", error);
   }
 }
 
 module.exports.closeBrowser = async function closeBrowser() {
   await browser.close();
-  console.log("✅ Browser closed");
+  logger.info("✅ Browser closed");
 };

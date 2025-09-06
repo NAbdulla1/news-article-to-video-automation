@@ -5,12 +5,13 @@ const path = require('path');
 const { consume, publish, ack } = require('./rabbitmq');
 const { video, youtube } = require('./config');
 const {generateVideo, initializeBrowser} = require('./generateVideo');
+const logger = require('./logger');
 
 async function main() {
     try {
         await initializeBrowser();
 
-        console.log(' [*] Waiting for messages. To exit press CTRL+C');
+        logger.info(' [*] Waiting for messages. To exit press CTRL+C');
 
         await consume(video.queue, video.inputRoutingKey, async (msg) => {
             if (msg.content) {
@@ -18,7 +19,7 @@ async function main() {
                 const headline = msg.properties.headers.headline;
                 const audio = msg.content;
 
-                console.log(` [x] Received ${headline} (${id})`);
+                logger.info(` [x] Received ${headline} (${id})`);
 
                 // Create a temporary file for the audio
                 const audioPath = path.join(__dirname, `${id}.wav`);
@@ -32,7 +33,7 @@ async function main() {
                 // In the next step, we'll implement the actual video generation
                 await generateVideo(audioPath, videoPath, headline, imagePath);
 
-                console.log(` [x] Generated video for ${headline} (${id})`);
+                logger.info(` [x] Generated video for ${headline} (${id})`);
 
                 // Publish the video
                 await publish(youtube.inputRoutingKey, fs.readFileSync(videoPath), {
@@ -40,7 +41,7 @@ async function main() {
                     headline: headline
                 });
 
-                console.log(` [x] Sent video for ${headline} (${id})`);
+                logger.info(` [x] Sent video for ${headline} (${id})`);
 
                 // Clean up temporary files
                 fs.unlinkSync(audioPath);
@@ -48,11 +49,11 @@ async function main() {
 
                 // Acknowledge the message
                 await ack(msg);
-                console.log(` [x] acknowledge video for ${headline} (${id})`);
+                logger.info(` [x] acknowledge video for ${headline} (${id})`);
             }
         });
     } catch (error) {
-        console.error("Error in main:", error);
+        logger.error("Error in main:", error);
     }
 }
 
