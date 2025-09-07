@@ -2,3 +2,4 @@ node_modules
 /.gemini
 generated_videos
 logs
+coverage
