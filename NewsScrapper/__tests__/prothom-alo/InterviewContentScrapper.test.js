@@ -31,10 +31,10 @@ describe("Prothom Alo Interview Scrapper", () => {
     }, 5 * 60000);
 
     afterEach(async () => {
-        await page.close();
+        await page?.close();
     });
 
     afterAll(async () => {
-        await browser.close();
+        await browser?.close();
     });
 });
