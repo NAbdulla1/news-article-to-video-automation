@@ -6,7 +6,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "jest"
+    "test": "jest",
+    "test-single": "jest prothom-alo/opinion-index.test.js"
   },
   "author": "Md. Abdulla Al Mamun",
   "license": "ISC",

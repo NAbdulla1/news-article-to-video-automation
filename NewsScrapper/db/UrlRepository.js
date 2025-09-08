@@ -2,7 +2,7 @@ import { connect } from './index.js';
 import { UrlStatusEnum } from '../UrlStatusEnum.js';
 
 class UrlRepository {
-    constructor(db) {
+    constructor() {
         this.collection = null;
     }
 

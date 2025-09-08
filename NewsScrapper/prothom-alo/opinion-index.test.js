@@ -1,7 +1,6 @@
 
 import { chromium } from "playwright";
 import { MongoMemoryServer } from "mongodb-memory-server";
-import { scrapProthomAlo } from "../prothom-alo/opinion-index.js";
 
 jest.mock("../infra/rabbitmq", () => ({
     publish: jest.fn(),
@@ -16,19 +15,29 @@ jest.mock("../logger", () => ({
     debug: jest.fn(),
 }));
 
+let mockDATABASE_URL;
+jest.mock('../config.js', () => ({
+    DATABASE_URL: mockDATABASE_URL,
+    TIMEOUT: "30000"
+}));
+
 let mongod;
-let originalEnv;
+let scrapProthomAlo;
 
 describe("Prothom Alo Opinion Page Scrapper", () => {
     let browser;
     let page;
     beforeAll(async () => {
         browser = await chromium.launch({ headless: true });
-        // Save original env
-        originalEnv = { ...process.env };
+        // start in-memory MongoDB
         mongod = await MongoMemoryServer.create();
-        process.env.DATABASE_URL = mongod.getUri();
-        process.env.TIMEOUT_MILLISECONDS = "30000";
+
+        // set mocked DATABASE_URL dynamically
+        mockDATABASE_URL = mongod.getUri();
+
+        // now import the module, we are importing it after ensuring that the DATABASE_URL is set from in-memory mongodb server
+        const opinionIndex = await import("../prothom-alo/opinion-index.js");
+        scrapProthomAlo = opinionIndex.scrapProthomAlo;
         jest.resetModules();
     });
 
@@ -42,12 +51,11 @@ describe("Prothom Alo Opinion Page Scrapper", () => {
     }, 5 * 60000);
 
     afterEach(async () => {
-        await page.close();
+        await page?.close();
     });
 
     afterAll(async () => {
-        await mongod.stop();
-        process.env = originalEnv;
-        await browser.close();
+        await mongod?.stop();
+        await browser?.close();
     });
 });
