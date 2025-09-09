@@ -39,7 +39,7 @@ describe("Prothom Alo Opinion Page Scrapper", () => {
         const opinionIndex = await import("../prothom-alo/opinion-index.js");
         scrapProthomAlo = opinionIndex.scrapProthomAlo;
         jest.resetModules();
-    });
+    }, 5 * 60 * 1000); // the timeout is neccessary for downloading the mongodb-memory-server
 
     beforeEach(async () => {
         page = await browser.newPage();
