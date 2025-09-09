@@ -11,6 +11,19 @@ We have added unit testing in this project.
 
 ### NewsAppTTSNode
 An Android application that provides Text-to-Speech (TTS) functionality. It can be used to convert the text from the scraped news articles into audio.
+ - Build and install the app on an Android Device.
+ - Install Bengali TTS data from Phone settings.
+ - The phone and the computer should be in the same network.
+ - Run the app.
+ - Click on 'Open Settings' button to connect to the app with RabbitMq
+   - Provide the computer IP as RabbitMQ host
+   - Provide the RabbitMQ username(default news_user)
+   - Provide the RabbitMQ password(default news_password)
+   - Provide the RabbitMQ exchange name(default news-app-exchange)
+   - Provide the RabbitMQ TTS input queue name(default input.tts)
+   - Provide the RabbitMQ TTS output queue name(default output.tts)
+
+It would be good if we could emulate the Android device inside docker. But for now it is only possible for Ubuntu OS.
 
 ### NewsTTSPython
 A Python service that also provides Text-to-Speech (TTS) functionality. This offers an alternative to the Android-based TTS service. We are not using this service now because it generates very low quality(in terms of Test To Speech) audio. The android TTS is better.
