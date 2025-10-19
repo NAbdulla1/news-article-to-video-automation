@@ -48,6 +48,8 @@ services:
     restart: unless-stopped
     volumes:
       - ./logs/scrapper:/usr/src/app/logs
+      - ./NewsScrapper:/app
+      - /app/node_modules
     ports:
       - "3000:3000"
     environment:
