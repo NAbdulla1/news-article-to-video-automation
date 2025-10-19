@@ -40,7 +40,7 @@ services:
   scrapper:
     build:
       context: ./NewsScrapper
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: news_scrapper
     depends_on:
       app_db:
@@ -48,6 +48,8 @@ services:
     restart: unless-stopped
     volumes:
       - ./logs/scrapper:/usr/src/app/logs
+    ports:
+      - "3000:3000"
     environment:
       MONGO_HOST: app_db
       RABBITMQ_HOST: rabbitmq

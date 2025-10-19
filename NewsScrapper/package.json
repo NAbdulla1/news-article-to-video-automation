@@ -5,6 +5,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "nodemon index.js",
     "start": "node index.js",
     "test": "jest",
     "test-single": "jest prothom-alo/opinion-index.test.js"
@@ -13,6 +14,7 @@
   "license": "ISC",
   "dependencies": {
     "amqplib": "^0.10.4",
+    "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.21.2",
     "mongodb": "^6.16.0",
@@ -28,6 +30,7 @@
     "@types/jest": "^30.0.0",
     "babel-jest": "^30.1.2",
     "jest": "^30.1.3",
-    "mongodb-memory-server": "^8.14.0"
+    "mongodb-memory-server": "^8.14.0",
+    "nodemon": "^3.1.10"
   }
 }

@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import cors from 'cors';
 import cron from 'node-cron';
 import { chromium } from "playwright";
 import { scrapProthomAlo, processArticleLink, publishArticle} from "./prothom-alo/opinion-index.js";
@@ -13,15 +14,23 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+// Use cors package to allow frontend origin
+app.use(cors({ origin: 'http://localhost:5173' }));
 
 // Healthcheck endpoint
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok' });
 });
 
+let cronSchedulingEnabled = false;
 let isScrapping = false;
 
 cron.schedule('* * * * *', async () => {
+    if (!cronSchedulingEnabled) {
+        logger.info("Scrapping is disabled. Skipping this run.");
+        return;
+    }
+
     if (isScrapping) {
         logger.info("Scrapping already in progress, skipping this run.");
         return;
@@ -79,6 +88,22 @@ app.get('/news-sources', (req, res) => {
         status: 'ok',
         sources: NewsSourceEnum
     });
+});
+
+// POST route to enable/disable scrapping
+app.post('/scrapping-enabled', (req, res) => {
+    const { enabled } = req.body;
+    if (typeof enabled !== 'boolean') {
+        return res.status(400).json({ status: 'error', error: 'Request body must include boolean "enabled" field' });
+    }
+    cronSchedulingEnabled = enabled;
+    logger.info(`Scrapping enabled set to: ${cronSchedulingEnabled}`);
+    res.status(200).json({ status: 'ok', scrappingEnabled: cronSchedulingEnabled });
+});
+
+// GET route to read current scrapping flag
+app.get('/scrapping-enabled', (req, res) => {
+    res.status(200).json({ status: 'ok', scrappingEnabled: cronSchedulingEnabled });
 });
 
 // Placeholder for future routes

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import ProcessLinkForm from './components/ProcessLinkForm.vue'
+import ScrappingToggle from './components/ScrappingToggle.vue'
 
 const title = ref('')
 const items = ref<string[]>([])
@@ -19,7 +21,10 @@ function remove(i: number) {
 <template>
   <n-layout>
     <n-layout-header class="app-header">
-      <h1 class="app-title">News → Video</h1>
+      <div style="display:flex;align-items:center;gap:16px">
+        <h1 class="app-title">News → Video</h1>
+        <ScrappingToggle />
+      </div>
 
       <div class="actions">
         <el-input v-model="title" placeholder="Article title" size="small" style="width:260px" />
@@ -28,6 +33,7 @@ function remove(i: number) {
     </n-layout-header>
 
     <n-layout-content style="padding:16px">
+      <ProcessLinkForm />
       <div class="grid">
         <n-card v-for="(t, i) in items" :key="i" size="small" title="Article">
           <template #default>
