@@ -69,8 +69,4 @@ function reset() {
   </div>
 </template>
 
-<style scoped>
-.process-form {
-  max-width: 640px
-}
-</style>
+<style scoped></style>

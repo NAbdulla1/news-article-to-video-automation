@@ -56,6 +56,54 @@ export async function processLink(payload: ProcessLinkPayload): Promise<ProcessL
   })
 }
 
+// Pending URLs types and helpers
+export type PendingUrl = {
+  _id: string
+  url: string
+  source: string
+  status: string
+  data: ProcessLinkResultData
+}
+
+export type PendingListResponse = {
+  items: PendingUrl[]
+  total: number
+}
+
+/**
+ * Fetch pending urls with optional query params: page, limit, status, source
+ * Assumption: backend supports query params page & limit and returns { items, total }
+ */
+export async function getPendingUrls(params?: {
+  page?: number
+  limit?: number
+  status?: string
+  source?: string
+}): Promise<PendingListResponse> {
+  const qs = new URLSearchParams()
+  if (params?.page) qs.set('page', String(params.page))
+  if (params?.limit) qs.set('limit', String(params.limit))
+  if (params?.status) qs.set('status', params.status)
+  if (params?.source) qs.set('source', params.source)
+  const path = `/pending-urls${qs.toString() ? `?${qs.toString()}` : ''}`
+  // Assumption: backend returns { items: [...], total: number }
+  return request<PendingListResponse>(path)
+}
+
+/** Delete a pending url by id */
+export async function deletePendingUrl(id: string): Promise<{ status: string }> {
+  return request<{ status: string }>(`/pending-urls/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  })
+}
+
+/** Process a pending url by id. Assumption: POST /pending-urls/:id/process triggers processing and returns ProcessLinkResponse */
+export async function processPendingUrl(id: string): Promise<ProcessLinkResponse> {
+  return request<ProcessLinkResponse>(`/pending-urls/${encodeURIComponent(id)}/process`, {
+    method: 'POST',
+  })
+}
+
 export type ScrappingResponse = { status: 'ok' | string; scrappingEnabled: boolean }
 
 export async function setScrappingEnabled(enabled: boolean): Promise<ScrappingResponse> {

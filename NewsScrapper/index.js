@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import { z } from 'zod';
 import cron from 'node-cron';
 import { chromium } from "playwright";
 import { scrapProthomAlo, processArticleLink, publishArticle} from "./prothom-alo/opinion-index.js";
@@ -75,8 +76,21 @@ app.post('/process-link', async (req, res) => {
 
 app.get('/pending-urls', async (req, res) => {
     try {
-        const urls = await UrlRepository.getNonCompletedUrls();
-        res.status(200).json({ status: 'ok', urls });
+        const { status, source, page = '1', limit = '10' } = req.query;
+        const pageNum = Number(page) || 1;
+        const limitNum = Number(limit) || 10;
+        const { items, total } = await UrlRepository.findUrls({ status, source, page: pageNum, limit: limitNum });
+
+        // normalize _id to string
+        const mapped = items.map(item => ({
+            _id: item._id?.toString ? item._id.toString() : item._id,
+            url: item.url,
+            source: item.source,
+            status: item.status,
+            data: item.data || null,
+        }));
+
+        res.status(200).json({ status: 'ok', total, page: pageNum, limit: limitNum, items: mapped });
     } catch (err) {
         logger.error('Error fetching pending urls:', err);
         res.status(500).json({ status: 'error', error: err.message });
@@ -92,10 +106,12 @@ app.get('/news-sources', (req, res) => {
 
 // POST route to enable/disable scrapping
 app.post('/scrapping-enabled', (req, res) => {
-    const { enabled } = req.body;
-    if (typeof enabled !== 'boolean') {
-        return res.status(400).json({ status: 'error', error: 'Request body must include boolean "enabled" field' });
+    const schema = z.object({ enabled: z.boolean() });
+    const parseResult = schema.safeParse(req.body);
+    if (!parseResult.success) {
+        return res.status(400).json({ status: 'error', error: 'Invalid request body', details: parseResult.error.errors });
     }
+    const { enabled } = parseResult.data;
     cronSchedulingEnabled = enabled;
     logger.info(`Scrapping enabled set to: ${cronSchedulingEnabled}`);
     res.status(200).json({ status: 'ok', scrappingEnabled: cronSchedulingEnabled });

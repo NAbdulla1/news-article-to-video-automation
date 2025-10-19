@@ -2,19 +2,16 @@
 import { ref } from 'vue'
 import ProcessLinkForm from './components/ProcessLinkForm.vue'
 import ScrappingToggle from './components/ScrappingToggle.vue'
+import PendingUrlsTable from './components/PendingUrlsTable.vue'
 
-const title = ref('')
-const items = ref<string[]>([])
+const showProcessModal = ref(false)
 
-function add() {
-  const t = title.value.trim()
-  if (!t) return
-  items.value.unshift(t)
-  title.value = ''
+function openProcessModal() {
+  showProcessModal.value = true
 }
 
-function remove(i: number) {
-  items.value.splice(i, 1)
+function closeProcessModal() {
+  showProcessModal.value = false
 }
 </script>
 
@@ -26,29 +23,29 @@ function remove(i: number) {
         <ScrappingToggle />
       </div>
 
-      <div class="actions">
-        <el-input v-model="title" placeholder="Article title" size="small" style="width:260px" />
-        <el-button type="primary" size="small" @click="add">Add</el-button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <el-button type="primary" size="small" @click="openProcessModal">Add Article</el-button>
       </div>
     </n-layout-header>
 
     <n-layout-content style="padding:16px">
-      <ProcessLinkForm />
-      <div class="grid">
-        <n-card v-for="(t, i) in items" :key="i" size="small" title="Article">
-          <template #default>
-            <div class="card-body">{{ t }}</div>
+      <PendingUrlsTable />
+
+      <n-modal style="max-width: 50%" v-model:show="showProcessModal" title="Process link" :mask-closable="false">
+        <n-card>
+          <template #header>
+            <div style="display: flex; justify-content: space-between; margin: 0;">
+              <h3>Process Link</h3>
+              <el-button circle size="small" @click="closeProcessModal">x</el-button>
+            </div>
           </template>
-          <template #footer>
-            <div class="card-footer">
-              <n-button size="small" @click="() => { }">Preview</n-button>
-              <el-button type="danger" size="small" @click="remove(i)">Remove</el-button>
+          <template #default>
+            <div class="card-body">
+              <ProcessLinkForm />
             </div>
           </template>
         </n-card>
-      </div>
-
-      <p v-if="items.length === 0" style="margin-top:24px">No articles yet. Add one above.</p>
+      </n-modal>
     </n-layout-content>
   </n-layout>
 </template>

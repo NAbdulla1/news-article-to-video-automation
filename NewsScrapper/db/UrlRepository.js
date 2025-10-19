@@ -29,6 +29,19 @@ class UrlRepository {
         return result;
     }
 
+    async findUrls({ status, source, page = 1, limit = 10 } = {}) {
+        await this.initCollection();
+        const filter = {};
+        if (source) filter.source = source;
+        if (status) filter.status = status;
+
+        const skip = Math.max(0, (Number(page) - 1)) * Number(limit);
+        const cursor = this.collection.find(filter).skip(skip).limit(Number(limit));
+        const items = await cursor.toArray();
+        const total = await this.collection.countDocuments(filter);
+        return { items, total };
+    }
+
     async updateUrl(url, source, status, scrappedData = null) {
         await this.initCollection();
         const updateData = { status };
