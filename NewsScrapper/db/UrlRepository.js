@@ -1,5 +1,6 @@
 import { connect } from './index.js';
 import { UrlStatusEnum } from '../UrlStatusEnum.js';
+import { ObjectId } from 'mongodb';
 
 class UrlRepository {
     constructor() {
@@ -7,8 +8,18 @@ class UrlRepository {
     }
 
     async initCollection() {
-        if(this.collection) return;
+        if (this.collection) return;
         this.collection = (await connect()).collection('urls');
+    }
+
+    async getById(id) {
+        await this.initCollection();
+        return this.collection.findOne({ _id: new ObjectId(id) });
+    }
+
+    async deleteById(id) {
+        await this.initCollection();
+        return this.collection.deleteOne({ _id: new ObjectId(id) });
     }
 
     async insertUrl({ url, source, status }) {
@@ -33,7 +44,11 @@ class UrlRepository {
         await this.initCollection();
         const filter = {};
         if (source) filter.source = source;
-        if (status) filter.status = status;
+        if (status) {
+            filter.status = status;
+        } else {
+            filter.status = { $ne: UrlStatusEnum.COMPLETED };
+        }
 
         const skip = Math.max(0, (Number(page) - 1)) * Number(limit);
         const cursor = this.collection.find(filter).skip(skip).limit(Number(limit));

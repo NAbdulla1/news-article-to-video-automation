@@ -67,7 +67,9 @@ app.post('/process-link', async (req, res) => {
         const publishedId = await publishArticle(article);
         logger.info(`Published: ${article?.headline} (${publishedId})`);
         await browser.close();
-        res.status(200).json({ status: 'processed', link, source, result: article });
+        // Update the URL entry status to COMPLETED
+        await UrlRepository.updateUrl(link, source, UrlStatusEnum.COMPLETED, article);
+        res.status(200).json({ status: 'completed', link, source, result: article });
     } catch (err) {
         logger.error('Process link error:', err);
         res.status(500).json({ status: 'error', error: err.message });
@@ -120,6 +122,50 @@ app.post('/scrapping-enabled', (req, res) => {
 // GET route to read current scrapping flag
 app.get('/scrapping-enabled', (req, res) => {
     res.status(200).json({ status: 'ok', scrappingEnabled: cronSchedulingEnabled });
+});
+
+app.post('/pending-urls/:id/process', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const urlEntry = await UrlRepository.getById(id);
+        if (!urlEntry) {
+            return res.status(404).json({ status: 'error', error: 'URL entry not found' });
+        }
+
+        // Process the URL
+        const browser = await chromium.launch({ headless: true });
+        const page = await browser.newPage();
+        const article = await processArticleLink(urlEntry.url, null, page, []);
+        const publishedId = await publishArticle(article);
+        logger.info(`Published: ${article?.headline} (${publishedId})`);
+        await browser.close();
+
+        // Update the URL entry status to COMPLETED
+        await UrlRepository.updateUrl(urlEntry.url, urlEntry.source, UrlStatusEnum.COMPLETED, article);
+
+        res.status(200).json({ status: 'ok', message: 'URL processed successfully', article });
+    } catch (err) {
+        logger.error('Error processing pending URL:', err);
+        res.status(500).json({ status: 'error', error: err.message });
+    }
+});
+
+app.delete('/pending-urls/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const urlEntry = await UrlRepository.getById(id);
+        if (!urlEntry) {
+            return res.status(404).json({ status: 'error', error: 'URL entry not found' });
+        }
+
+        // Delete the URL entry
+        await UrlRepository.deleteById(id);
+
+        res.status(200).json({ status: 'ok', message: 'URL entry deleted successfully' });
+    } catch (err) {
+        logger.error('Error deleting URL entry:', err);
+        res.status(500).json({ status: 'error', error: err.message });
+    }
 });
 
 // Placeholder for future routes

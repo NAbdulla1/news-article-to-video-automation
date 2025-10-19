@@ -24,7 +24,7 @@ async function toggle(value: boolean) {
   <div class="scrapping-toggle">
     <label style="display:flex;align-items:center;gap:12px">
       <span>Enable Cron Schedule Scrapping</span>
-      <n-switch :loading="store.loading" v-model:checked="store.enabled" @update:value="toggle" />
+      <n-switch :loading="store.loading" v-model:value="store.enabled" @update:value="toggle" />
     </label>
 
     <div style="margin-top:8px;display:flex;gap:8px;align-items:center">

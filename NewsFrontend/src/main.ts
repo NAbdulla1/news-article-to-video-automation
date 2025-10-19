@@ -32,12 +32,4 @@ try {
   if (import.meta.env.DEV) console.debug('sources store load skipped:', e)
 }
 
-// load scrapping flag
-try {
-  const s = useScrappingStore()
-  s.load().catch((err) => console.warn('Failed to load scrapping flag', err))
-} catch (err) {
-  if (import.meta.env.DEV) console.debug('scrapping store load skipped:', err)
-}
-
 app.mount('#app')

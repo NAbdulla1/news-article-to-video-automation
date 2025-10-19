@@ -33,6 +33,10 @@ async function onDelete(id: string) {
   try {
     await deletePendingUrl(id)
     await load()
+    const index = items.value.findIndex(i => i._id === id)
+    if (index !== -1) {
+      items.value.splice(index, 1)
+    }
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : String(e)
   } finally {
@@ -45,6 +49,10 @@ async function onProcess(id: string) {
   try {
     await processPendingUrl(id)
     await load()
+    const item = items.value.find(i => i._id === id)
+    if (item) {
+      item.status = 'completed'
+    }
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : String(e)
   } finally {
