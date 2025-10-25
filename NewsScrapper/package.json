@@ -7,8 +7,9 @@
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js",
+    "seed": "node db/seeder.js",
     "test": "jest",
-    "test-single": "jest prothom-alo/opinion-index.test.js"
+    "test-single": "jest __tests__/db/seeder.test.js"
   },
   "author": "Md. Abdulla Al Mamun",
   "license": "ISC",

@@ -1,4 +1,4 @@
-import { TIMEOUT, TTS_INPUT_ROUTING_KEY } from "../config.js";
+import { TIMEOUT, TTS_INPUT_ROUTING_KEY, ALREADY_LOADED_NEWS_THRESHOLD } from "../config.js";
 import { ContentScrapper } from "./ContentScrapper.js";
 import { InterviewContentScrapper } from "./InterviewContentScrapper.js";
 import UrlRepository from "../db/UrlRepository.js";
@@ -48,14 +48,14 @@ export async function scrapProthomAlo(page) {
                 await UrlRepository.insertUrl({ url: link, source: sourceName, status: UrlStatusEnum.PENDING });
             } else {
                 alreadyLoadedLinkCount++;
-                if (alreadyLoadedLinkCount >= 5) {
+                if (alreadyLoadedLinkCount >= ALREADY_LOADED_NEWS_THRESHOLD) {
                     break;
                 }
             }
         }
 
-        if (alreadyLoadedLinkCount >= 5) {
-            logger.info("Already loaded 5 links, stopping infinite scroll");
+        if (alreadyLoadedLinkCount >= ALREADY_LOADED_NEWS_THRESHOLD) {
+            logger.info(`Found ${ALREADY_LOADED_NEWS_THRESHOLD} existing links, stopping infinite scroll`);
             break;
         }
 

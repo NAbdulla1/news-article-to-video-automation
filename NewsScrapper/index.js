@@ -8,7 +8,7 @@ import { scrapProthomAlo, processArticleLink, publishArticle} from "./prothom-al
 import UrlRepository from "./db/UrlRepository.js";
 import { UrlStatusEnum } from "./UrlStatusEnum.js";
 import { processLinkSchema } from './schemas/processLinkSchema.js';
-import { NewsSourceEnum } from './schemas/SourceEnum.js';
+import { NewsSourceEnum } from './SourceEnum.js';
 import logger from './logger.js';
 
 const app = express();

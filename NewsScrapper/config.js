@@ -6,3 +6,4 @@ export const RABBITMQ_PASS = process.env.RABBITMQ_PASS || 'news_password';
 export const RABBITMQ_EXCHANGE = 'news-app-exchange';
 export const TTS_INPUT_ROUTING_KEY = 'input.tts';
 export const SCRAPPER_CRON_SCHEDULE = process.env.SCRAPPER_CRON_SCHEDULE || '0 */3 * * *'; // At minute 0 past every 3rd hour.
+export const ALREADY_LOADED_NEWS_THRESHOLD = parseInt(process.env.ALREADY_LOADED_NEWS_THRESHOLD) || 5;
