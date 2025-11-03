@@ -4,7 +4,7 @@ import { UrlStatusEnum } from "../UrlStatusEnum.js";
 import { NewsSourceEnum } from "../SourceEnum.js";
 
 // seed the database with 5 articles to stop the scrapper early
-async function seedDatabase() {
+export async function seedDatabase() {
     const urlsToSeed = [
         { url: "https://www.prothomalo.com/opinion/column/sytkxzn1nc", source: NewsSourceEnum.PROTHOM_ALO, status: UrlStatusEnum.PENDING },
         { url: "https://www.prothomalo.com/politics/e8urqq2v2c", source: NewsSourceEnum.PROTHOM_ALO, status: UrlStatusEnum.PENDING },
@@ -26,8 +26,6 @@ async function seedDatabase() {
 
 seedDatabase().then(() => {
     console.log("Database seeding completed.");
-    process.exit(0);
 }).catch((err) => {
     console.error("Error during database seeding:", err);
-    process.exit(1);
 });
