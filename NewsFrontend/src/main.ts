@@ -8,7 +8,6 @@ import App from './App.vue'
 import router from './router'
 import { getBackendUrl } from './config'
 import { useSourcesStore } from './stores/sources'
-import { useScrappingStore } from './stores/scrapping'
 
 const app = createApp(App)
 
