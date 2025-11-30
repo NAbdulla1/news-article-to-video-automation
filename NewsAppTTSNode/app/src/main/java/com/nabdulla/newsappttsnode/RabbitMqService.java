@@ -72,6 +72,7 @@ public class RabbitMqService extends Service implements ResultCallback, TextToSp
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                 Log.e("nf", "Language not supported.");
             } else {
+                Log.i("nf", "Found bengali language");
                 this.startRabbitConsumer();
             }
         } else {
