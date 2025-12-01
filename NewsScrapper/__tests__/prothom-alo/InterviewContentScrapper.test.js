@@ -28,7 +28,7 @@ describe("Prothom Alo Interview Scrapper", () => {
 
         expect(result.headline.length).toBeGreaterThan(0);
         expect(result.content.length).toBeGreaterThan(0);
-    }, 5 * 60000);
+    }, 30 * 1000);
 
     afterEach(async () => {
         await page?.close();

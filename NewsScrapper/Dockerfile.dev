@@ -1,12 +1,14 @@
-FROM node:20-slim
+FROM node:20-bullseye-slim
 
 WORKDIR /app
 COPY package.json .
 
-RUN npm install && \
-    npx playwright install chromium-headless-shell --with-deps
-
-RUN node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop())"
+RUN apt update && \
+    apt install --yes libcurl4 --no-install-recommends && \
+    npm install && \
+    npx playwright install chromium-headless-shell --with-deps && \
+    node -e "require('mongodb-memory-server').MongoMemoryServer.create().then(s => s.stop())" && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY . .
 

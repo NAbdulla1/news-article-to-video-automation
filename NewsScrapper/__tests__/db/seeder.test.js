@@ -25,12 +25,12 @@ describe("Seed database properly", () => {
         await seeder.seedDatabase();
         urlRepository = await import("../../db/UrlRepository.js");
         jest.resetModules();
-    }, 5 * 60 * 1000); // the timeout is neccessary for downloading the mongodb-memory-server
+    }, 30 * 1000); // the timeout is neccessary for downloading the mongodb-memory-server
 
     test("the database should have pending urls", async () => {
         const urls = await urlRepository.default.getPendingUrls(NewsSourceEnum.PROTHOM_ALO);
         expect(urls.length).toBeGreaterThan(0);
-    }, 5 * 60000);
+    }, 30 * 1000);
 
     afterAll(async () => {
         await mongod?.stop();

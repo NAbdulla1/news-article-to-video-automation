@@ -39,7 +39,7 @@ describe("Prothom Alo Opinion Page Scrapper", () => {
         const opinionIndex = await import("../prothom-alo/opinion-index.js");
         scrapProthomAlo = opinionIndex.scrapProthomAlo;
         jest.resetModules();
-    }, 5 * 60 * 1000); // the timeout is neccessary for downloading the mongodb-memory-server
+    }, 30 * 1000); // the timeout is neccessary for downloading the mongodb-memory-server
 
     beforeEach(async () => {
         page = await browser.newPage();
@@ -48,7 +48,7 @@ describe("Prothom Alo Opinion Page Scrapper", () => {
     test("should scrap opinion article links and insert new URLs into the database", async () => {
         const result = await scrapProthomAlo(page);
         expect(Array.isArray(result)).toBe(true);
-    }, 5 * 60000);
+    }, 60 * 1000);
 
     afterEach(async () => {
         await page?.close();

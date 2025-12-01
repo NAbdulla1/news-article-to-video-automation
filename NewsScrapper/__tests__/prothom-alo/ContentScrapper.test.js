@@ -28,13 +28,13 @@ describe("Prothom Alo Content Scrapper", () => {
 
         expect(result.headline.length).toBeGreaterThan(0);
         expect(result.content.length).toBeGreaterThan(0);
-    }, 5 * 60000);
+    }, 30 * 1000);
 
     test("should handle non-existent article URL gracefully", async () => {
         scrapper = new ContentScrapper(page);
         const urlToScrap = "https://www.prothomalo.com/opinion/article/non-existent-article";
         await expect(scrapper.scrapContent(urlToScrap)).rejects.toThrow();
-    }, 5 * 60000);
+    }, 60 * 1000);
 
     afterEach(async () => {
         await page?.close();
