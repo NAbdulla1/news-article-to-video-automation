@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, h } from 'vue'
+import { ref, computed, onMounted, h, onBeforeUnmount } from 'vue'
 import { getPendingUrls, deletePendingUrl, processPendingUrl } from '../services/backendService'
 import type { PendingUrl } from '../services/backendService'
 import { NButton } from 'naive-ui'
 
+let interval: ReturnType<typeof setInterval> | null = null;
 const page = ref(1)
 const limit = ref(10)
 const total = ref(0)
@@ -60,7 +61,17 @@ async function onProcess(id: string) {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  interval = setInterval(load, 10000)
+})
+
+onBeforeUnmount(() => {
+  if (interval) {
+    clearInterval(interval)
+    interval = null
+  }
+})
 
 const columns = computed(() => [
   { title: 'Headline', key: 'data.headline', default: () => 'N/A' },
