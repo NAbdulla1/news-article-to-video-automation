@@ -8,6 +8,8 @@ jest.mock("../infra/rabbitmq", () => ({
     connect: jest.fn(),
 }));
 
+import { publish } from "../infra/rabbitmq.js";
+
 jest.mock("../logger", () => ({
     info: jest.fn(),
     warn: jest.fn(),
@@ -38,8 +40,7 @@ describe("Prothom Alo Opinion Page Scrapper", () => {
         // now import the module, we are importing it after ensuring that the DATABASE_URL is set from in-memory mongodb server
         const opinionIndex = await import("../prothom-alo/opinion-index.js");
         scrapProthomAlo = opinionIndex.scrapProthomAlo;
-        jest.resetModules();
-    }, 30 * 1000); // the timeout is neccessary for downloading the mongodb-memory-server
+    }, 30 * 1000);
 
     beforeEach(async () => {
         page = await browser.newPage();
@@ -48,9 +49,15 @@ describe("Prothom Alo Opinion Page Scrapper", () => {
     test("should scrap opinion article links and insert new URLs into the database", async () => {
         const result = await scrapProthomAlo(page);
         expect(Array.isArray(result)).toBe(true);
-    }, 60 * 1000);
+    }, 2 * 60 * 1000);
+
+    test("should publish the article to the queue", async () => {
+        const result = await scrapProthomAlo(page);
+        expect(publish).toHaveBeenCalledTimes(result.length);
+    }, 2 * 60 * 1000);
 
     afterEach(async () => {
+        jest.clearAllMocks(); // clears call history
         await page?.close();
     });
 

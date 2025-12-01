@@ -24,7 +24,6 @@ describe("Seed database properly", () => {
         seeder = await import("../../db/seeder.js");
         await seeder.seedDatabase();
         urlRepository = await import("../../db/UrlRepository.js");
-        jest.resetModules();
     }, 30 * 1000); // the timeout is neccessary for downloading the mongodb-memory-server
 
     test("the database should have pending urls", async () => {

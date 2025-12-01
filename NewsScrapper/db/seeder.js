@@ -17,9 +17,6 @@ export async function seedDatabase() {
         const exists = await UrlRepository.isUrlExists(urlData.url, urlData.source);
         if (!exists) {
             await UrlRepository.insertUrl(urlData);
-            console.log(`Inserted URL: ${urlData.url}`);
-        } else {
-            console.log(`URL already exists: ${urlData.url}`);
         }
     }
 }
