@@ -56,13 +56,13 @@ function reset() {
     <div v-if="result" style="margin-top:12px">
       <n-card title="Result" size="small">
         <template #default>
-          <div><strong>URL:</strong> {{ result.result.url }}</div>
-          <div><strong>Source:</strong> {{ result.result.source }}</div>
-          <div><strong>Status:</strong> {{ result.result.status }}</div>
-          <div style="margin-top:8px"><strong>Headline:</strong> {{ result.result.data.headline }}</div>
-          <div><strong>Author:</strong> {{ result.result.data.author }}</div>
+          <div><strong>URL:</strong> {{ result.link }}</div>
+          <div><strong>Source:</strong> {{ result.source }}</div>
+          <div><strong>Status:</strong> {{ result.status }}</div>
+          <div style="margin-top:8px"><strong>Headline:</strong> {{ result.result.headline }}</div>
+          <div><strong>Author:</strong> {{ result.result.author }}</div>
           <div style="margin-top:8px"><strong>Content:</strong></div>
-          <div style="white-space:pre-wrap">{{ result.result.data.content }}</div>
+          <div style="white-space:pre-wrap">{{ result.result.content }}</div>
         </template>
       </n-card>
     </div>

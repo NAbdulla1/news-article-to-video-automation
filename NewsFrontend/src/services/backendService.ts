@@ -45,7 +45,7 @@ export type ProcessLinkResponse = {
   status: 'processed' | string
   link: string
   source: string
-  result: ProcessLinkResult
+  result: ProcessLinkResultData
 }
 
 export async function processLink(payload: ProcessLinkPayload): Promise<ProcessLinkResponse> {
