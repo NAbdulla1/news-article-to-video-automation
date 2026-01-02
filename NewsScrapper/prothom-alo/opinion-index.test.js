@@ -10,7 +10,7 @@ jest.mock("../infra/rabbitmq", () => ({
 
 import { publish } from "../infra/rabbitmq.js";
 
-jest.mock("../logger", () => ({
+jest.mock("../src/logger", () => ({
     info: jest.fn(),
     warn: jest.fn(),
     error: jest.fn(),

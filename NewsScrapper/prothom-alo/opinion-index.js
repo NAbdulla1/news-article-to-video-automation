@@ -5,7 +5,7 @@ import UrlRepository from "../db/UrlRepository.js";
 import { UrlStatusEnum } from "../UrlStatusEnum.js";
 import crypto from 'crypto';
 import { publish } from "../infra/rabbitmq.js";
-import logger from '../logger.js';
+import logger from '../src/logger.js';
 const sourceName = "prothom-alo";
 const urlToScrap = "https://www.prothomalo.com/opinion";
 

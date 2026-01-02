@@ -1,5 +1,11 @@
 version: '3.8'
 
+volumes:
+  news_rabbitmq_data:
+  app_db_data:
+  elasticsearch_data:
+  keycloak_postgres_data:
+
 services:
   rabbitmq:
     image: rabbitmq:3.13.7-management
@@ -37,6 +43,42 @@ services:
       retries: 5
       start_period: 40s
 
+  keycloak_db:
+    image: postgres:15
+    container_name: news_keycloak_db
+    volumes:
+      - keycloak_postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.0
+    container_name: news_keycloak
+    command: start-dev --import-realm
+    volumes:
+      - ./keycloak-data/realm-export.json:/opt/keycloak/data/import/realm.json
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak_db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: password
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8080:8080"
+    depends_on:
+      keycloak_db:
+        condition: service_healthy
+    restart: unless-stopped
+
   scrapper:
     build:
       context: ./NewsScrapper
@@ -45,6 +87,8 @@ services:
     depends_on:
       app_db:
         condition: service_healthy
+      keycloak:
+        condition: service_started
     restart: unless-stopped
     volumes:
       - ./logs/scrapper:/usr/src/app/logs
@@ -57,6 +101,10 @@ services:
       RABBITMQ_HOST: rabbitmq
       LOGSTASH_HOST: logstash
       PORT: 3000
+      KEYCLOAK_BASE_URL: http://keycloak:8080
+      KEYCLOAK_REALM: news-realm
+      KEYCLOAK_CLIENT_ID: news-backend
+      KEYCLOAK_CLIENT_SECRET: backend-secret
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', res => process.exit(res.statusCode === 200 ? 0 : 1))"]
       interval: 30s
@@ -160,8 +208,6 @@ services:
       - /app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
-
-volumes:
-  news_rabbitmq_data:
-  app_db_data:
-  elasticsearch_data:
+      - VITE_KEYCLOAK_URL=http://localhost:8080
+      - VITE_KEYCLOAK_REALM=news-realm
+      - VITE_KEYCLOAK_CLIENT_ID=news-app

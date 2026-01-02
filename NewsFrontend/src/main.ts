@@ -31,4 +31,15 @@ try {
   if (import.meta.env.DEV) console.debug('sources store load skipped:', e)
 }
 
-app.mount('#app')
+// Initialize Auth before mounting
+import { useAuthStore } from './stores/authStore'
+const authStore = useAuthStore()
+
+authStore.initAuth().then(() => {
+  app.mount('#app')
+}).catch((err) => {
+  console.error("Failed to initialize auth:", err)
+  // Mount anyway to show forbidden/error state if needed, or just crash?
+  // Better to mount so we can at least show something, or maybe show a global error.
+  app.mount('#app')
+})

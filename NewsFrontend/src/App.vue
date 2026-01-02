@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import ProcessLinkForm from './components/ProcessLinkForm.vue'
 import ScrappingToggle from './components/ScrappingToggle.vue'
 import PendingUrlsTable from './components/PendingUrlsTable.vue'
+import { useAuthStore } from './stores/authStore'
+import { useRouter } from 'vue-router'
 
 const showProcessModal = ref(false)
+const authStore = useAuthStore()
+const router = useRouter()
 
 function openProcessModal() {
   showProcessModal.value = true
@@ -13,23 +17,49 @@ function openProcessModal() {
 function closeProcessModal() {
   showProcessModal.value = false
 }
+
+
 </script>
 
 <template>
   <n-layout>
     <n-layout-header class="app-header">
       <div style="display:flex;align-items:center;gap:16px">
-        <h1 class="app-title">News → Video</h1>
-        <ScrappingToggle />
+        <h1 class="app-title" @click="router.push('/')" style="cursor: pointer;">News → Video</h1>
+        <ScrappingToggle v-if="authStore.hasPermission('SCRAPPING.STATUS.VIEW')" />
       </div>
 
       <div style="display:flex;gap:8px;align-items:center">
-        <el-button type="primary" size="small" @click="openProcessModal">Add Article</el-button>
+        <template v-if="authStore.isAuthenticated">
+           <span style="color: white; margin-right: 10px;" v-if="authStore.userProfile">
+              Hello, {{ authStore.userProfile.firstName }}
+           </span>
+           
+           <n-button v-if="authStore.isAdmin" ghost size="small" @click="router.push('/pending-users')">
+              Pending Users
+           </n-button>
+
+           <n-button type="primary" size="small" @click="openProcessModal">Add Article</n-button>
+           <n-button size="small" type="error" ghost @click="authStore.logout">Logout</n-button>
+        </template>
+        <template v-else>
+           <n-button ghost size="small" @click="authStore.login">Login</n-button>
+           <n-button ghost size="small" @click="router.push('/register')">Register</n-button>
+        </template>
       </div>
     </n-layout-header>
 
     <n-layout-content style="padding:16px">
-      <PendingUrlsTable />
+      <!-- Show Router View for Navigation (Home, Register, PendingUsers) -->
+      <!-- If on Home (root), show the default Dashboard components -->
+      <!-- Wait, the original App.vue hardcoded PendingUrlsTable. We need to check if we are using RouterView or not. -->
+      <!-- The router has a HomeView. Let's start using RouterView instead of hardcoding. -->
+      <!-- BUT: I need to check what HomeView contains. If it's empty, I should move the dashboard there. -->
+      
+      <router-view v-if="authStore.isAuthenticated || $route.name === 'register' || $route.name === 'forbidden' || $route.meta.public" /> 
+      <div v-else style="text-align: center; padding: 50px;">
+          <h2>Please Login to access the dashboard.</h2>
+      </div>
 
       <n-modal style="max-width: 50%" v-model:show="showProcessModal" title="Process link" :mask-closable="false">
         <n-card>
@@ -87,3 +117,4 @@ function closeProcessModal() {
   align-items: center;
 }
 </style>
+

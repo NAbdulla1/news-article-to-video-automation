@@ -9,14 +9,25 @@ import UrlRepository from "./db/UrlRepository.js";
 import { UrlStatusEnum } from "./UrlStatusEnum.js";
 import { processLinkSchema } from './schemas/processLinkSchema.js';
 import { NewsSourceEnum } from './SourceEnum.js';
-import logger from './logger.js';
+import logger from './src/logger.js';
+
+// Auth Imports
+import authRouter from './src/routes/auth.js';
+import { verifyToken, requirePermission } from './src/middleware/auth.js';
+import { PERMISSIONS } from './src/enums/PermissionEnum.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
-// Use cors package to allow frontend origin
-app.use(cors({ origin: 'http://localhost:5173' }));
+// Use cors package to allow frontend origin and Authorization header
+app.use(cors({
+    origin: 'http://localhost:5173',
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Route for Auth (Register, etc)
+app.use('/auth', authRouter);
 
 // Healthcheck endpoint
 app.get('/health', (req, res) => {
@@ -52,7 +63,9 @@ cron.schedule('* * * * *', async () => {
     }
 });
 
-app.post('/process-link', async (req, res) => {
+// Protected Routes
+
+app.post('/process-link', verifyToken, requirePermission(PERMISSIONS.URL_PROCESS), async (req, res) => {
     const parseResult = processLinkSchema.safeParse(req.body);
     if (!parseResult.success) {
         return res.status(400).json({ status: 'error', error: 'Invalid request body', details: parseResult.error.errors });
@@ -76,7 +89,8 @@ app.post('/process-link', async (req, res) => {
     }
 });
 
-app.get('/pending-urls', async (req, res) => {
+// STAFF can View
+app.get('/pending-urls', verifyToken, requirePermission(PERMISSIONS.URL_VIEW), async (req, res) => {
     try {
         const { status, source, page = '1', limit = '10' } = req.query;
         const pageNum = Number(page) || 1;
@@ -99,15 +113,16 @@ app.get('/pending-urls', async (req, res) => {
     }
 });
 
-app.get('/news-sources', (req, res) => {
+// STAFF can View
+app.get('/news-sources', verifyToken, requirePermission(PERMISSIONS.URL_VIEW), (req, res) => {
     res.status(200).json({
         status: 'ok',
         sources: NewsSourceEnum
     });
 });
 
-// POST route to enable/disable scrapping
-app.post('/scrapping-enabled', (req, res) => {
+// POST route to enable/disable scrapping - MODIFY permission
+app.post('/scrapping-enabled', verifyToken, requirePermission(PERMISSIONS.SCRAPPING_STATUS_MODIFY), (req, res) => {
     const schema = z.object({ enabled: z.boolean() });
     const parseResult = schema.safeParse(req.body);
     if (!parseResult.success) {
@@ -119,12 +134,12 @@ app.post('/scrapping-enabled', (req, res) => {
     res.status(200).json({ status: 'ok', scrappingEnabled: cronSchedulingEnabled });
 });
 
-// GET route to read current scrapping flag
-app.get('/scrapping-enabled', (req, res) => {
+// GET route to read current scrapping flag - VIEW permission
+app.get('/scrapping-enabled', verifyToken, requirePermission(PERMISSIONS.SCRAPPING_STATUS_VIEW), (req, res) => {
     res.status(200).json({ status: 'ok', scrappingEnabled: cronSchedulingEnabled });
 });
 
-app.post('/pending-urls/:id/process', async (req, res) => {
+app.post('/pending-urls/:id/process', verifyToken, requirePermission(PERMISSIONS.URL_PROCESS), async (req, res) => {
     const { id } = req.params;
     try {
         const urlEntry = await UrlRepository.getById(id);
@@ -150,7 +165,7 @@ app.post('/pending-urls/:id/process', async (req, res) => {
     }
 });
 
-app.delete('/pending-urls/:id', async (req, res) => {
+app.delete('/pending-urls/:id', verifyToken, requirePermission(PERMISSIONS.URL_DELETE), async (req, res) => {
     const { id } = req.params;
     try {
         const urlEntry = await UrlRepository.getById(id);
