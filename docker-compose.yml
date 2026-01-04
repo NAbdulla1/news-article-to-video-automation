@@ -64,6 +64,7 @@ services:
     command: start-dev --import-realm
     volumes:
       - ./keycloak-data/realm-export.json:/opt/keycloak/data/import/realm.json
+      - ./keycloak-themes:/opt/keycloak/themes
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloak_db:5432/keycloak

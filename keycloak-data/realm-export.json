@@ -1,7 +1,9 @@
 {
     "realm": "news-realm",
     "sslRequired": "none",
+    "loginTheme": "news-theme",
     "enabled": true,
+    "registrationAllowed": true,
     "roles": {
         "realm": [
             {
