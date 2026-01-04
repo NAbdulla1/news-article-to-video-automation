@@ -12,7 +12,7 @@ router.post('/register', async (req, res) => {
     // Validate request body
     const parseResult = registerSchema.safeParse(req.body);
     if (!parseResult.success) {
-        return res.status(400).json({ status: 'error', error: 'Invalid input', details: parseResult.error.errors });
+        return res.status(400).json({ status: 'error', error: 'Invalid input', details: JSON.parse(parseResult.error.message) });
     }
 
     const { username, email, password, firstName, lastName } = parseResult.data;
@@ -23,7 +23,21 @@ router.post('/register', async (req, res) => {
         // Check if user exists
         const existingUsers = await kcAdmin.users.find({ username });
         if (existingUsers.length > 0) {
-            return res.status(400).json({ status: 'error', error: 'User already exists' });
+            return res.status(400).json({
+                status: 'error',
+                error: 'Invalid input',
+                details: [{ message: 'User already exists', path: ['username'] }]
+            });
+        }
+
+        // Check if email exists
+        const existingEmails = await kcAdmin.users.find({ email });
+        if (existingEmails.length > 0) {
+            return res.status(400).json({
+                status: 'error',
+                error: 'Invalid input',
+                details: [{ message: 'Email already exists', path: ['email'] }]
+            });
         }
 
         // Count total users to determine if this is the first user

@@ -2,24 +2,25 @@
   <div class="register-container">
     <n-card title="Register" style="max-width: 400px; margin: auto; margin-top: 50px;">
       <n-form ref="formRef" :model="form" :rules="rules">
-        <n-form-item label="Username" path="username">
-            <n-input v-model:value="form.username" placeholder="Username" />
+        <n-form-item label="Username" path="username" :validation-status="fieldErrors.username ? 'error' : undefined" :feedback="fieldErrors.username">
+            <n-input v-model:value="form.username" placeholder="Username" @update:value="fieldErrors.username = ''" />
         </n-form-item>
-        <n-form-item label="First Name" path="firstName">
-            <n-input v-model:value="form.firstName" placeholder="First Name" />
+        <n-form-item label="First Name" path="firstName" :validation-status="fieldErrors.firstName ? 'error' : undefined" :feedback="fieldErrors.firstName">
+            <n-input v-model:value="form.firstName" placeholder="First Name" @update:value="fieldErrors.firstName = ''" />
         </n-form-item>
-        <n-form-item label="Last Name" path="lastName">
-            <n-input v-model:value="form.lastName" placeholder="Last Name" />
+        <n-form-item label="Last Name" path="lastName" :validation-status="fieldErrors.lastName ? 'error' : undefined" :feedback="fieldErrors.lastName">
+            <n-input v-model:value="form.lastName" placeholder="Last Name" @update:value="fieldErrors.lastName = ''" />
         </n-form-item>
-        <n-form-item label="Email" path="email">
-            <n-input v-model:value="form.email" placeholder="Email" />
+        <n-form-item label="Email" path="email" :validation-status="fieldErrors.email ? 'error' : undefined" :feedback="fieldErrors.email">
+            <n-input v-model:value="form.email" placeholder="Email" @update:value="fieldErrors.email = ''" />
         </n-form-item>
-        <n-form-item label="Password" path="password">
+        <n-form-item label="Password" path="password" :validation-status="fieldErrors.password ? 'error' : undefined" :feedback="fieldErrors.password">
           <n-input
             v-model:value="form.password"
             type="password"
             show-password-on="click"
             placeholder="Password"
+            @update:value="fieldErrors.password = ''"
           />
         </n-form-item>
         <n-button type="primary" block @click="handleRegister" :loading="loading">
@@ -53,6 +54,8 @@ const form = ref({
     password: ''
 });
 
+const fieldErrors = ref<Record<string, string>>({});
+
 const rules = {
     username: { required: true, message: 'Please input username', trigger: 'blur' },
     email: { required: true, message: 'Please input email', trigger: 'blur' },
@@ -61,14 +64,28 @@ const rules = {
 
 const handleRegister = async () => {
     loading.value = true;
+    fieldErrors.value = {}; // Reset errors
     try {
         await authService.register(form.value);
         message.success('Registration successful. Please login.');
         keycloakService.login();
     } catch (error: any) {
+        console.log('Register Error Response:', error.response?.data);
         // Handle error message
-        const err = error.response?.data?.error || 'Registration failed';
-        message.error(err);
+        const data = error.response?.data;
+        if (data?.details) {
+             // Handle Zod validation errors
+             data.details.forEach((err: any) => {
+                 const field = err.path[0];
+                 if (field) {
+                     fieldErrors.value[field] = err.message;
+                 }
+             });
+             message.error("Please fix the errors in the form.");
+        } else {
+             const err = data?.error || 'Registration failed';
+             message.error(err);
+        }
     } finally {
         loading.value = false;
     }
