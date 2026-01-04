@@ -1,4 +1,5 @@
 import Keycloak from 'keycloak-js';
+import backendService from './backendService';
 
 const keycloak = new Keycloak({
   url: import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080',
@@ -39,7 +40,7 @@ export const getUserProfile = async () => {
     if (keycloak.isTokenExpired(30)) {
       await keycloak.updateToken(30);
     }
-    const profile = await keycloak.loadUserProfile();
+    const profile = await backendService.getUserProfile();
     return profile;
   } catch (err) {
     console.error("Failed to load user profile. Token status:", {

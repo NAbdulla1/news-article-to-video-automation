@@ -28,12 +28,12 @@ router.post('/register', async (req, res) => {
         // Count total users to determine if this is the first user
         // Note: count() might not be accurate if there are service accounts, depending on keycloak version/config.
         // We will query users with a limit to guess. Or just count.
-        // A safer bet: define 'admin' role name. 
+        // A safer bet: define 'admin' role name.
         const usersCount = await kcAdmin.users.count({ realm: process.env.KEYCLOAK_REALM || 'news-realm' });
-        
+
         // Note: count includes service accounts? Usually checks regular users.
         // If usersCount == 0, assign admin.
-        
+
         logger.info(`Creating user ${username}. Current user count: ${usersCount}`);
 
         const newUser = await kcAdmin.users.create({
@@ -52,7 +52,7 @@ router.post('/register', async (req, res) => {
 
         // Assign Role
         const roleName = usersCount === 0 ? ROLES.ADMIN : null; // First user is admin, others have NO role (pending)
-        
+
         if (roleName) {
             // Get Role ID
             const role = await kcAdmin.roles.findOne({ name: roleName });
@@ -64,7 +64,7 @@ router.post('/register', async (req, res) => {
                 logger.info(`Assigned ${roleName} role to ${username}`);
             }
         } else {
-             logger.info(`User ${username} registered as PENDING (no roles).`);
+            logger.info(`User ${username} registered as PENDING (no roles).`);
         }
 
         res.status(201).json({ status: 'ok', message: 'User registered successfully', userId: newUser.id, role: roleName || 'pending' });
@@ -73,23 +73,23 @@ router.post('/register', async (req, res) => {
         logger.error('Registration failed:', err);
         // Keycloak error handling
         if (err.response && err.response.data && err.response.data.errorMessage) {
-             return res.status(400).json({ status: 'error', error: err.response.data.errorMessage });
+            return res.status(400).json({ status: 'error', error: err.response.data.errorMessage });
         }
         res.status(500).json({ status: 'error', error: 'Registration failed' });
     }
 });
 
 router.get('/users/pending', verifyToken, requirePermission('URL.VIEW'), async (req, res) => {
-     // NOTE: 'URL.VIEW' is a dummy permission check. We really want "Admin" check.
-     // But strictly speaking, our plan said Admin Only. Admin has all permissions.
-     // Let's use a specific check if we had one, or rely on Admin role having everything.
-     // In Middleware logic, if user is admin, they pass.
-     
-     // To be safer, we could add a check:
-     const userRoles = req.user.roles || [];
-     if (!userRoles.includes(ROLES.ADMIN)) {
-         return res.status(403).json({ status: 'error', error: 'Admin access required' });
-     }
+    // NOTE: 'URL.VIEW' is a dummy permission check. We really want "Admin" check.
+    // But strictly speaking, our plan said Admin Only. Admin has all permissions.
+    // Let's use a specific check if we had one, or rely on Admin role having everything.
+    // In Middleware logic, if user is admin, they pass.
+
+    // To be safer, we could add a check:
+    const userRoles = req.user.roles || [];
+    if (!userRoles.includes(ROLES.ADMIN)) {
+        return res.status(403).json({ status: 'error', error: 'Admin access required' });
+    }
 
     try {
         const kcAdmin = await getKeycloakAdmin();
@@ -98,11 +98,11 @@ router.get('/users/pending', verifyToken, requirePermission('URL.VIEW'), async (
         // Filter users who have NO realm roles (excluding default roles if any)
         // This is expensive if many users. Keycloak API doesn't filter by "no role".
         // We will iterate and check roles.
-        
+
         const pendingUsers = [];
         for (const user of users) {
-             // Skip service accounts
-             if (user.username && user.username.startsWith('service-account-')) continue;
+            // Skip service accounts
+            if (user.username && user.username.startsWith('service-account-')) continue;
 
             const mappings = await kcAdmin.users.listRealmRoleMappings({ id: user.id });
             // Check for our managed roles
@@ -126,26 +126,26 @@ router.get('/users/pending', verifyToken, requirePermission('URL.VIEW'), async (
 });
 
 router.post('/users/:id/approve', verifyToken, async (req, res) => {
-     const userRoles = req.user.roles || [];
-     if (!userRoles.includes(ROLES.ADMIN)) {
-         return res.status(403).json({ status: 'error', error: 'Admin access required' });
-     }
-    
+    const userRoles = req.user.roles || [];
+    if (!userRoles.includes(ROLES.ADMIN)) {
+        return res.status(403).json({ status: 'error', error: 'Admin access required' });
+    }
+
     const { id } = req.params;
     try {
         const kcAdmin = await getKeycloakAdmin();
-        
+
         // Assign 'staff' role
         const role = await kcAdmin.roles.findOne({ name: ROLES.STAFF });
         if (!role) {
-             throw new Error('Staff role not found in Keycloak');
+            throw new Error('Staff role not found in Keycloak');
         }
 
         await kcAdmin.users.addRealmRoleMappings({
             id: id,
             roles: [{ id: role.id, name: role.name }]
         });
-        
+
         logger.info(`User ${id} approved and assigned STAFF role.`);
         res.status(200).json({ status: 'ok', message: 'User approved successfully' });
 
@@ -153,6 +153,20 @@ router.post('/users/:id/approve', verifyToken, async (req, res) => {
         logger.error('Failed to approve user:', err);
         res.status(500).json({ status: 'error', error: err.message });
     }
+});
+
+router.get('/me', verifyToken, (req, res) => {
+    // req.user is populated by verifyToken from the JWT
+    // We can return it directly or normalize it
+    const user = {
+        id: req.user.sub,
+        username: req.user.preferred_username,
+        email: req.user.email,
+        firstName: req.user.given_name,
+        lastName: req.user.family_name,
+        roles: req.user.roles
+    };
+    res.status(200).json({ status: 'ok', user });
 });
 
 export default router;

@@ -92,4 +92,9 @@ export async function getScrappingEnabled(): Promise<ScrappingResponse> {
   return response.data
 }
 
-export default { getNewsSources, processLink, setScrappingEnabled, getScrappingEnabled }
+export async function getUserProfile() {
+  const response = await apiClient.get<{ status: 'ok', user: any }>('/auth/me');
+  return response.data.user;
+}
+
+export default { getNewsSources, processLink, setScrappingEnabled, getScrappingEnabled, getUserProfile }
