@@ -6,7 +6,6 @@ import ElementPlus from 'element-plus'
 
 import App from './App.vue'
 import { getBackendUrl } from './config'
-import { useSourcesStore } from './stores/sources'
 
 const app = createApp(App)
 
@@ -19,15 +18,6 @@ const backend = getBackendUrl()
 app.provide('BACKEND_URL', backend)
 
 if (import.meta.env.DEV) console.log('[config] BACKEND_URL =', backend)
-
-// load news sources into Pinia
-try {
-  const store = useSourcesStore()
-  // store.loadSources may call fetch; call it but don't block mount
-  store.loadSources().catch((e) => console.warn('Failed to load sources', e))
-} catch (e) {
-  if (import.meta.env.DEV) console.debug('sources store load skipped:', e)
-}
 
 // Initialize Auth before mounting
 import { useAuthStore } from './stores/authStore'

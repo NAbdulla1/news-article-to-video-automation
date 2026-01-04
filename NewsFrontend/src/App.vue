@@ -5,6 +5,7 @@ import ScrappingToggle from './components/ScrappingToggle.vue'
 import PendingUrlsTable from './components/PendingUrlsTable.vue'
 import { useAuthStore } from './stores/authStore'
 import { useRouter } from 'vue-router'
+import { useSourcesStore } from './stores/sources'
 
 const showProcessModal = ref(false)
 const authStore = useAuthStore()
@@ -18,6 +19,14 @@ function closeProcessModal() {
   showProcessModal.value = false
 }
 
+// load news sources into Pinia
+try {
+  const store = useSourcesStore()
+  // store.loadSources may call fetch; call it but don't block mount
+  store.loadSources().catch((e) => console.warn('Failed to load sources', e))
+} catch (e) {
+  if (import.meta.env.DEV) console.debug('sources store load skipped:', e)
+}
 
 </script>
 
@@ -34,7 +43,7 @@ function closeProcessModal() {
            <span style="color: white; margin-right: 10px;" v-if="authStore.userProfile">
               Hello, {{ authStore.userProfile.firstName }}
            </span>
-           
+
            <n-button v-if="authStore.isAdmin" ghost size="small" @click="router.push('/pending-users')">
               Pending Users
            </n-button>
@@ -55,8 +64,8 @@ function closeProcessModal() {
       <!-- Wait, the original App.vue hardcoded PendingUrlsTable. We need to check if we are using RouterView or not. -->
       <!-- The router has a HomeView. Let's start using RouterView instead of hardcoding. -->
       <!-- BUT: I need to check what HomeView contains. If it's empty, I should move the dashboard there. -->
-      
-      <router-view v-if="authStore.isAuthenticated || $route.name === 'register' || $route.name === 'forbidden' || $route.meta.public" /> 
+
+      <router-view v-if="authStore.isAuthenticated || $route.name === 'register' || $route.name === 'forbidden' || $route.meta.public" />
       <div v-else style="text-align: center; padding: 50px;">
           <h2>Please Login to access the dashboard.</h2>
       </div>
