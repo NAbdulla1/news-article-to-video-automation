@@ -23,16 +23,14 @@ if (import.meta.env.DEV) console.log('[config] BACKEND_URL =', backend)
 import { useAuthStore } from './stores/authStore'
 const authStore = useAuthStore()
 
-authStore.initAuth().then((authenticated) => {
-  if (authenticated) {
-    import('./router').then(({ default: router }) => {
-      app.use(router)
-      app.mount('#app')
-    })
-  } else {
-    alert("authentication failed");
-  }
+authStore.initAuth().then(() => {
+  // Mount app regardless of auth status - Router guards will handle protection
+  import('./router').then(({ default: router }) => {
+    app.use(router)
+    app.mount('#app')
+  })
 }).catch((err) => {
   console.error("Failed to initialize auth:", err)
-  alert("authentication failed");
+  // Still mount to show error page or public routes if possible, or just fail gracefully
+  alert("Auth initialization failed - Network or Config Error");
 })

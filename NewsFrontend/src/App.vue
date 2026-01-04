@@ -31,7 +31,8 @@ try {
 </script>
 
 <template>
-  <n-layout>
+  <n-message-provider>
+    <n-layout>
     <n-layout-header class="app-header">
       <div style="display:flex;align-items:center;gap:16px">
         <h1 class="app-title" @click="router.push('/')" style="cursor: pointer;">News → Video</h1>
@@ -86,7 +87,8 @@ try {
         </n-card>
       </n-modal>
     </n-layout-content>
-  </n-layout>
+    </n-layout>
+  </n-message-provider>
 </template>
 
 <style scoped>

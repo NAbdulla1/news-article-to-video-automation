@@ -1,3 +1,4 @@
+// @ts-check
 import express from 'express';
 import { getKeycloakAdmin } from '../config/keycloak-admin.js';
 import { registerSchema } from '../schemas/authSchema.js';
@@ -55,7 +56,8 @@ router.post('/register', async (req, res) => {
 
         if (roleName) {
             // Get Role ID
-            const role = await kcAdmin.roles.findOne({ name: roleName });
+            const roles = await kcAdmin.roles.find({ name: roleName });
+            const role = roles.find(r => r.name === roleName);
             if (role) {
                 await kcAdmin.users.addRealmRoleMappings({
                     id: newUser.id,
@@ -136,7 +138,8 @@ router.post('/users/:id/approve', verifyToken, async (req, res) => {
         const kcAdmin = await getKeycloakAdmin();
 
         // Assign 'staff' role
-        const role = await kcAdmin.roles.findOne({ name: ROLES.STAFF });
+        const roles = await kcAdmin.roles.find({ name: ROLES.STAFF });
+        const role = roles.find(r => r.name === ROLES.STAFF);
         if (!role) {
             throw new Error('Staff role not found in Keycloak');
         }
