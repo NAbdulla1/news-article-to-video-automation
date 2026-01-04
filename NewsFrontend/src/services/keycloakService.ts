@@ -30,7 +30,7 @@ export const initKeycloak = async () => {
 };
 
 export const login = () => keycloak.login();
-export const logout = () => keycloak.logout();
+export const logout = () => keycloak.logout({ redirectUri: window.location.origin });
 export const getToken = () => keycloak.token;
 export const updateToken = () => keycloak.updateToken(70); // Refresh if expires in < 70s
 export const hasRealmRole = (role: string) => keycloak.hasRealmRole(role);

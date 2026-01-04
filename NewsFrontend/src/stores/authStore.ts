@@ -46,6 +46,8 @@ export const useAuthStore = defineStore('auth', () => {
     const hasRole = (role: string) => roles.value.includes(role);
     const isAdmin = computed(() => roles.value.includes('admin'));
 
+    const isApproved = computed(() => roles.value.includes('admin') || roles.value.includes('staff'));
+
     return {
         isAuthenticated,
         userProfile,
@@ -56,6 +58,7 @@ export const useAuthStore = defineStore('auth', () => {
         logout,
         hasPermission,
         hasRole,
-        isAdmin
+        isAdmin,
+        isApproved
     }
 });

@@ -56,6 +56,17 @@ router.beforeEach(async (to, from, next) => {
       keycloakService.login();
       return; // Keycloak redirect will happen
     }
+
+    // Authenticated, now check approval
+    const authStore = useAuthStore();
+    if (!authStore.isApproved) {
+      return next({ name: 'forbidden' });
+    }
+  }
+
+  // Redirect to home if already logged in and trying to access register
+  if (to.name === 'register' && keycloakService.isAuthenticated()) {
+    return next({ name: 'home' });
   }
 
   // Check Permissions (after auth check)
