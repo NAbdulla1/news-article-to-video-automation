@@ -13,7 +13,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, h } from 'vue';
-import { NButton, useMessage } from 'naive-ui';
+import { NButton, useMessage, NSpace } from 'naive-ui';
 import { authService } from '../services/authService';
 
 const users = ref([]);
@@ -31,13 +31,30 @@ const columns = [
     key: 'actions',
     render(row: any) {
       return h(
-        NButton,
+        NSpace,
+        {},
         {
-          type: 'primary',
-          size: 'small',
-          onClick: () => approveUser(row.id)
-        },
-        { default: () => 'Approve' }
+          default: () => [
+            h(
+              NButton,
+              {
+                type: 'primary',
+                size: 'small',
+                onClick: () => approveUser(row.id, 'staff')
+              },
+              { default: () => 'Approve Staff' }
+            ),
+            h(
+              NButton,
+              {
+                type: 'warning',
+                size: 'small',
+                onClick: () => approveUser(row.id, 'admin')
+              },
+              { default: () => 'Approve Admin' }
+            )
+          ]
+        }
       );
     }
   }
@@ -55,10 +72,10 @@ const fetchPendingUsers = async () => {
   }
 };
 
-const approveUser = async (id: string) => {
+const approveUser = async (id: string, role: string) => {
     try {
-        await authService.approveUser(id);
-        message.success('User approved');
+        await authService.approveUser(id, role);
+        message.success(`User approved as ${role}`);
         fetchPendingUsers();
     } catch (e: any) {
         message.error('Failed to approve user');

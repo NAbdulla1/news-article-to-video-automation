@@ -134,14 +134,19 @@ router.post('/users/:id/approve', verifyToken, async (req, res) => {
     }
 
     const { id } = req.params;
+    const { role: requestedRole } = req.body;
+
+    // Validate role
+    const targetRole = requestedRole === ROLES.ADMIN ? ROLES.ADMIN : ROLES.STAFF;
+
     try {
         const kcAdmin = await getKeycloakAdmin();
 
-        // Assign 'staff' role
-        const roles = await kcAdmin.roles.find({ name: ROLES.STAFF });
-        const role = roles.find(r => r.name === ROLES.STAFF);
+        // Assign role
+        const roles = await kcAdmin.roles.find({ name: targetRole });
+        const role = roles.find(r => r.name === targetRole);
         if (!role) {
-            throw new Error('Staff role not found in Keycloak');
+            throw new Error(`${targetRole} role not found in Keycloak`);
         }
 
         await kcAdmin.users.addRealmRoleMappings({
@@ -149,8 +154,8 @@ router.post('/users/:id/approve', verifyToken, async (req, res) => {
             roles: [{ id: role.id, name: role.name }]
         });
 
-        logger.info(`User ${id} approved and assigned STAFF role.`);
-        res.status(200).json({ status: 'ok', message: 'User approved successfully' });
+        logger.info(`User ${id} approved and assigned ${targetRole} role.`);
+        res.status(200).json({ status: 'ok', message: `User approved successfully as ${targetRole}` });
 
     } catch (err) {
         logger.error('Failed to approve user:', err);
