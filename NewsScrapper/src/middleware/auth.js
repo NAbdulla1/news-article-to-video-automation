@@ -68,12 +68,12 @@ export const requirePermission = (permission) => {
         });
 
         if (!hasPermission) {
-             // Admins should technically have everything, assuming 'admin' role covers it in mapping above.
-             // If implicit admin access is desired:
-             // if (userRoles.includes('admin')) return next();
-             
-             logger.warn(`User ${req.user.preferred_username} denied access. Required: ${permission}`);
-             return res.status(403).json({ status: 'error', error: 'Insufficient permissions' });
+            // Admins should technically have everything, assuming 'admin' role covers it in mapping above.
+            // If implicit admin access is desired:
+            // if (userRoles.includes('admin')) return next();
+
+            logger.warn(`User ${req.user.preferred_username} denied access. Required: ${permission}`);
+            return res.status(403).json({ status: 'error', error: 'Insufficient permissions' });
         }
 
         next();

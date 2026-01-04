@@ -5,14 +5,12 @@ import 'element-plus/dist/index.css'
 import ElementPlus from 'element-plus'
 
 import App from './App.vue'
-import router from './router'
 import { getBackendUrl } from './config'
 import { useSourcesStore } from './stores/sources'
 
 const app = createApp(App)
 
 app.use(createPinia())
-app.use(router)
 app.use(naive)
 app.use(ElementPlus)
 
@@ -35,11 +33,16 @@ try {
 import { useAuthStore } from './stores/authStore'
 const authStore = useAuthStore()
 
-authStore.initAuth().then(() => {
-  app.mount('#app')
+authStore.initAuth().then((authenticated) => {
+  if (authenticated) {
+    import('./router').then(({ default: router }) => {
+      app.use(router)
+      app.mount('#app')
+    })
+  } else {
+    alert("authentication failed");
+  }
 }).catch((err) => {
   console.error("Failed to initialize auth:", err)
-  // Mount anyway to show forbidden/error state if needed, or just crash?
-  // Better to mount so we can at least show something, or maybe show a global error.
-  app.mount('#app')
+  alert("authentication failed");
 })

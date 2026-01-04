@@ -1,8 +1,9 @@
 import axios from 'axios';
 import * as keycloakService from './keycloakService';
+import { getBackendUrl } from '../config';
 
 const apiClient = axios.create({
-    baseURL: 'http://localhost:3000', // Backend URL
+    baseURL: getBackendUrl(), // Backend URL from config
     headers: {
         'Content-Type': 'application/json'
     }

@@ -10,7 +10,7 @@ export const initKeycloak = async () => {
   try {
     console.log("Initializing Keycloak...");
     const authenticated = await keycloak.init({
-      onLoad: 'check-sso',
+      onLoad: 'login-required',
       // silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
       pkceMethod: 'S256',
       checkLoginIframe: false // Disable iframe check to rule out iframe issues for now
@@ -21,8 +21,8 @@ export const initKeycloak = async () => {
     console.error('Keycloak init failed', error);
     // Log more details if available
     if (error instanceof Error) {
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
     }
     return false;
   }
@@ -34,6 +34,21 @@ export const getToken = () => keycloak.token;
 export const updateToken = () => keycloak.updateToken(70); // Refresh if expires in < 70s
 export const hasRealmRole = (role: string) => keycloak.hasRealmRole(role);
 export const isAuthenticated = () => !!keycloak.authenticated;
-export const getUserProfile = () => keycloak.loadUserProfile();
+export const getUserProfile = async () => {
+  try {
+    // Ensure token is fresh before requesting profile
+    if (keycloak.isTokenExpired(30)) {
+      await keycloak.updateToken(30);
+    }
+    const profile = await keycloak.loadUserProfile();
+    return profile;
+  } catch (err) {
+    console.error("Failed to load user profile. Token status:", {
+      expired: keycloak.isTokenExpired(),
+      hasToken: !!keycloak.token,
+    }, err);
+    throw err;
+  }
+};
 
 export default keycloak;

@@ -1,26 +1,14 @@
-import { getBackendUrl } from '../config'
+import apiClient from './apiClient'
 
 export type NewsSourcesResponse = {
   status: 'ok' | string
   sources: Record<string, string>
 }
 
-const BASE = getBackendUrl().replace(/\/$/, '')
-
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const url = `${BASE}${path}`
-  const res = await fetch(url, options)
-  if (!res.ok) {
-    const t = await res.text().catch(() => '')
-    throw new Error(`Request failed ${res.status}: ${t}`)
-  }
-  return res.json() as Promise<T>
-}
-
 export async function getNewsSources(): Promise<Record<string, string>> {
-  const res = await request<NewsSourcesResponse>('/news-sources')
-  if (res.status !== 'ok') throw new Error('Bad response status')
-  return res.sources
+  const response = await apiClient.get<NewsSourcesResponse>('/news-sources')
+  if (response.data.status !== 'ok') throw new Error('Bad response status')
+  return response.data.sources
 }
 
 export type ProcessLinkPayload = {
@@ -49,11 +37,8 @@ export type ProcessLinkResponse = {
 }
 
 export async function processLink(payload: ProcessLinkPayload): Promise<ProcessLinkResponse> {
-  return request<ProcessLinkResponse>('/process-link', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
+  const response = await apiClient.post<ProcessLinkResponse>('/process-link', payload)
+  return response.data
 }
 
 // Pending URLs types and helpers
@@ -72,7 +57,6 @@ export type PendingListResponse = {
 
 /**
  * Fetch pending urls with optional query params: page, limit, status, source
- * Assumption: backend supports query params page & limit and returns { items, total }
  */
 export async function getPendingUrls(params?: {
   page?: number
@@ -80,43 +64,32 @@ export async function getPendingUrls(params?: {
   status?: string
   source?: string
 }): Promise<PendingListResponse> {
-  const qs = new URLSearchParams()
-  if (params?.page) qs.set('page', String(params.page))
-  if (params?.limit) qs.set('limit', String(params.limit))
-  if (params?.status) qs.set('status', params.status)
-  if (params?.source) qs.set('source', params.source)
-  const path = `/pending-urls${qs.toString() ? `?${qs.toString()}` : ''}`
-  // Assumption: backend returns { items: [...], total: number }
-  return request<PendingListResponse>(path)
+  const response = await apiClient.get<PendingListResponse>('/pending-urls', { params })
+  return response.data
 }
 
 /** Delete a pending url by id */
 export async function deletePendingUrl(id: string): Promise<{ status: string }> {
-  return request<{ status: string }>(`/pending-urls/${encodeURIComponent(id)}`, {
-    method: 'DELETE',
-  })
+  const response = await apiClient.delete<{ status: string }>(`/pending-urls/${encodeURIComponent(id)}`)
+  return response.data
 }
 
-/** Process a pending url by id. Assumption: POST /pending-urls/:id/process triggers processing and returns ProcessLinkResponse */
+/** Process a pending url by id */
 export async function processPendingUrl(id: string): Promise<ProcessLinkResponse> {
-  return request<ProcessLinkResponse>(`/pending-urls/${encodeURIComponent(id)}/process`, {
-    method: 'POST',
-  })
+  const response = await apiClient.post<ProcessLinkResponse>(`/pending-urls/${encodeURIComponent(id)}/process`)
+  return response.data
 }
 
 export type ScrappingResponse = { status: 'ok' | string; scrappingEnabled: boolean }
 
 export async function setScrappingEnabled(enabled: boolean): Promise<ScrappingResponse> {
-  return request<ScrappingResponse>('/scrapping-enabled', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ enabled }),
-  })
+  const response = await apiClient.post<ScrappingResponse>('/scrapping-enabled', { enabled })
+  return response.data
 }
 
 export async function getScrappingEnabled(): Promise<ScrappingResponse> {
-  // assume backend exposes GET /scrapping-enabled returning { status: 'ok', scrappingEnabled: boolean }
-  return request<ScrappingResponse>('/scrapping-enabled')
+  const response = await apiClient.get<ScrappingResponse>('/scrapping-enabled')
+  return response.data
 }
 
 export default { getNewsSources, processLink, setScrappingEnabled, getScrappingEnabled }

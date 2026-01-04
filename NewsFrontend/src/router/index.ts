@@ -45,7 +45,7 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
   // Wait for Keycloak init if not already (handled in App.vue usually, but good to check)
-  // Actually typically we block app render until init. 
+  // Actually typically we block app render until init.
   // But router guard is good place to enforce.
 
   // Check if route requires auth

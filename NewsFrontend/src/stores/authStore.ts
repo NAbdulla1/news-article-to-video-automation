@@ -36,11 +36,12 @@ export const useAuthStore = defineStore('auth', () => {
                 console.error("Failed to load profile", e);
             }
         }
+        return isAuthenticated.value;
     };
 
     const login = () => keycloakService.login();
     const logout = () => keycloakService.logout();
-    
+
     const hasPermission = (perm: string) => permissions.value.has(perm);
     const hasRole = (role: string) => roles.value.includes(role);
     const isAdmin = computed(() => roles.value.includes('admin'));
