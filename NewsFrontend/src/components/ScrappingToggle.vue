@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useScrappingStore } from '../stores/scrapping'
+import { useAuthStore } from '../stores/authStore'
 
 const store = useScrappingStore()
+const authStore = useAuthStore()
 
 onMounted(() => {
   // ensure the store has current value from backend
@@ -24,7 +26,7 @@ async function toggle(value: boolean) {
   <div class="scrapping-toggle">
     <label style="display:flex;align-items:center;gap:12px">
       <span>Enable Cron Schedule Scrapping</span>
-      <n-switch :loading="store.loading" v-model:value="store.enabled" @update:value="toggle" />
+      <n-switch :disabled="!authStore.hasPermission('SCRAPPING.STATUS.MODIFY')" :loading="store.loading" v-model:value="store.enabled" @update:value="toggle" />
     </label>
 
     <div style="margin-top:8px;display:flex;gap:8px;align-items:center">

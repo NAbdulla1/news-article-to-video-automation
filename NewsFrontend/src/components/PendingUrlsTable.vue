@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, h, onBeforeUnmount } from 'vue'
 import { getPendingUrls, deletePendingUrl, processPendingUrl } from '../services/backendService'
+import { useAuthStore } from '../stores/authStore'
 import type { PendingUrl } from '../services/backendService'
 import { NButton } from 'naive-ui'
 
@@ -82,8 +83,18 @@ const columns = computed(() => [
     title: 'Actions',
     key: 'actions',
     render(row: PendingUrl) {
-      const texts = ['Process', 'Delete']
-      return [onProcess, onDelete].map((callback, index) => {
+      const authStore = useAuthStore()
+      const actions = []
+
+      if (authStore.hasPermission('URL.PROCESS')) {
+        actions.push({ label: 'Process', onClick: () => onProcess(row._id) })
+      }
+
+      if (authStore.hasPermission('URL.DELETE')) {
+        actions.push({ label: 'Delete', onClick: () => onDelete(row._id) })
+      }
+
+      return actions.map((action, index) => {
         return h(
           NButton,
           {
@@ -91,9 +102,9 @@ const columns = computed(() => [
             strong: true,
             tertiary: true,
             size: 'small',
-            onClick: () => { callback(row._id) }
+            onClick: action.onClick
           },
-          { default: () => texts[index] }
+          { default: () => action.label }
         )
       });
     }

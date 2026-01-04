@@ -49,7 +49,7 @@ try {
               Pending Users
            </n-button>
 
-           <n-button type="primary" size="small" @click="openProcessModal">Add Article</n-button>
+           <n-button v-if="authStore.hasPermission('URL.PROCESS')" type="primary" size="small" @click="openProcessModal">Add Article</n-button>
            <n-button size="small" type="error" ghost @click="authStore.logout">Logout</n-button>
         </template>
         <template v-else>
