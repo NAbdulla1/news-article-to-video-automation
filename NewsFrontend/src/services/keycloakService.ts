@@ -12,15 +12,12 @@ export const initKeycloak = async () => {
     console.log("Initializing Keycloak...");
     const authenticated = await keycloak.init({
       onLoad: 'check-sso',
-      // silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
-      pkceMethod: 'S256',
-      checkLoginIframe: false // Disable iframe check to rule out iframe issues for now
+      silentCheckSsoRedirectUri: window.location.origin + '/silent-check-sso.html',
     });
     console.log("Keycloak init result:", authenticated);
     return authenticated;
   } catch (error) {
     console.error('Keycloak init failed', error);
-    // Log more details if available
     if (error instanceof Error) {
       console.error('Error message:', error.message);
       console.error('Error stack:', error.stack);
